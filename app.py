@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, jsonify
 import os
 from werkzeug.utils import secure_filename
 import re
@@ -47,8 +47,19 @@ def upload_file():
 
 @app.route('/text', methods=['POST'])
 def text_mess_get():
+    # Получаем данные из запроса
+    data = request.json  # Ожидаем JSON с ключом "text"
 
-    pass
+    # Проверяем, есть ли текст в запросе
+    if not data or 'text' not in data:
+        return jsonify({"error": "Текст не предоставлен"}), 400
+
+    text = data['text']
+    sentiment = "Good"
+    return jsonify({
+        "text": text,
+        "sentiment": sentiment
+    })
 
 
 
