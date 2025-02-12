@@ -1,70 +1,176 @@
 <!DOCTYPE html>
 <html lang="ru">
-<head><!-- добавить шапку с названием конкурса и названием команды: AI learning lab, ILBM-->
+<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Загрузка XLSX файла</title>
+    <title>Определитель тональности текста от ILBM</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
+            background-color: #fff; /* Белый фон */
             margin: 0;
             padding: 0;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
+            color: #000; /* Черный текст */
         }
         .container {
-            background-color: #fff;
+            background-color: #f9f9f9; /* Светло-серый контейнер */
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
             text-align: center;
+            border: 1px solid #ddd; /* Серая рамка */
+            max-width: 500px;
+            width: 100%;
         }
         h1 {
             margin-bottom: 20px;
-            color: #333;
+            color: #4CAF50; /* Зеленый цвет */
+        }
+        .header {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #4CAF50; /* Зеленый цвет */
+        }
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #4CAF50; /* Зеленая рамка */
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-family: Arial, sans-serif;
+            font-size: 16px;
+            resize: vertical; /* Разрешаем изменение высоты */
         }
         input[type="file"] {
             margin-bottom: 20px;
+            background-color: #fff; /* Белый фон для input */
+            color: #000; /* Черный текст */
+            border: 1px solid #4CAF50; /* Зеленая рамка */
+            padding: 10px;
+            border-radius: 5px;
+            width: 100%;
         }
         button {
-            background-color: #007bff;
-            color: #fff;
+            background-color: #4CAF50; /* Зеленый фон */
+            color: #fff; /* Белый текст */
             border: none;
             padding: 10px 20px;
             border-radius: 5px;
             cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin: 5px;
         }
         button:hover {
-            background-color: #0056b3;
+            background-color: #45a049; /* Темно-зеленый при наведении */
         }
         .message {
             margin-top: 20px;
-            color: #28a745;
+            color: #4CAF50; /* Зеленый цвет */
         }
         .error {
-            color: #dc3545;
+            color: #ff4444; /* Красный цвет для ошибок */
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Загрузите XLSX файл</h1>
-        <form action="/upload" method="POST" enctype="multipart/form-data">
-            <input type="file" name="file" accept=".xlsx" required>
+        <div class="header">Определитель тональности текста от ILBM</div>
+
+        <!-- Форма для ввода текста -->
+        <h1>Введите текст для анализа</h1>
+        <form id="textForm">
+            <textarea id="textInput" rows="5" placeholder="Введите ваш текст здесь..."></textarea>
             <br>
-            <button type="submit">Загрузить</button>
+            <button type="button" onclick="analyzeText()">Анализировать текст</button>
         </form>
 
-        {% if message %}
-            <div class="message">{{ message }}</div>
-        {% endif %}
+        <!-- Форма для загрузки файла -->
+        <h1>Загрузите файл для анализа</h1>
+        <form id="fileForm" action="/upload" method="POST" enctype="multipart/form-data">
+            <input type="file" name="file" accept=".xlsx" required>
+            <br>
+            <button type="submit">Анализировать файл</button>
+        </form>
 
-        {% if error %}
-            <div class="error">{{ error }}</div>
-        {% endif %}
+        <!-- Блоки для отображения результата и ошибок -->
+        <div id="result" class="message"></div>
+        <div id="error" class="error"></div>
     </div>
+
+    <script>
+        // Функция для отправки текста на сервер
+        async function analyzeText() {
+            const text = document.getElementById('textInput').value;
+            const resultDiv = document.getElementById('result');
+            const errorDiv = document.getElementById('error');
+
+            // Очищаем предыдущие сообщения
+            resultDiv.textContent = '';
+            errorDiv.textContent = '';
+
+            if (!text) {
+                errorDiv.textContent = 'Пожалуйста, введите текст для анализа.';
+                return;
+            }
+
+            try {
+                // Отправляем POST-запрос на сервер
+                const response = await fetch('/text', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ text: text }),
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Отображаем результат
+                    resultDiv.textContent = `Тональность текста: ${data.sentiment}`;
+                } else {
+                    // Отображаем ошибку
+                    errorDiv.textContent = data.error || 'Произошла ошибка при анализе текста.';
+                }
+            } catch (error) {
+                errorDiv.textContent = 'Ошибка при отправке запроса на сервер.';
+            }
+        }
+
+        // Обработка отправки файла
+        document.getElementById('fileForm').addEventListener('submit', async (e) => {
+            e.preventDefault(); // Предотвращаем стандартную отправку формы
+
+            const formData = new FormData(e.target);
+            const resultDiv = document.getElementById('result');
+            const errorDiv = document.getElementById('error');
+
+            // Очищаем предыдущие сообщения
+            resultDiv.textContent = '';
+            errorDiv.textContent = '';
+
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    resultDiv.textContent = data.message || 'Файл успешно обработан.';
+                } else {
+                    errorDiv.textContent = data.error || 'Ошибка при обработке файла.';
+                }
+            } catch (error) {
+                errorDiv.textContent = 'Ошибка при отправке файла на сервер.';
+            }
+        });
+    </script>
 </body>
 </html>
