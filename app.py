@@ -9,7 +9,7 @@ app = Flask(__name__)
 
 # Папка для загрузки файлов
 # Добавить проверку на наличие свободной директории в папке
-UPLOAD_FOLDER = 'upload'
+UPLOAD_FOLDER = 'uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 # Разрешенные расширения файлов
