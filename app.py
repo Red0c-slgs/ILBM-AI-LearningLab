@@ -9,11 +9,11 @@ app = Flask(__name__)
 
 # Папка для загрузки файлов
 # Добавить проверку на наличие свободной директории в папке
-UPLOAD_FOLDER = 'uploads'
+UPLOAD_FOLDER = 'dataset_comments_500'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 # Разрешенные расширения файлов
-ALLOWED_EXTENSIONS = {'xlsx'}
+ALLOWED_EXTENSIONS = {'xlsx','csv'}
 #мб сделать распрасивание для cvs и ods
 
 # Проверка расширения файла
@@ -44,8 +44,7 @@ def upload_file():
     else:
         return render_template('upload.html', error="Недопустимый формат файла")
 
+
+
 if __name__ == '__main__':
-    # Создаем папку для загрузок, если её нет
-    if not os.path.exists(UPLOAD_FOLDER):
-        os.makedirs(UPLOAD_FOLDER)
     app.run(debug=True)
