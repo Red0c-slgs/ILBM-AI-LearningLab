@@ -1,56 +1,71 @@
 <!DOCTYPE html>
 <html lang="ru">
-<head><!-- добавить шапку с названием конкурса и названием команды: AI learning lab, ILBM-->
+<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Загрузка XLSX файла</title>
+    <title>Определитель тональности текста от ILBM</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
+            background-color: #fff; /* Белый фон */
             margin: 0;
             padding: 0;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
+            color: #000; /* Черный текст */
         }
         .container {
-            background-color: #fff;
+            background-color: #f9f9f9; /* Светло-серый контейнер */
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
             text-align: center;
+            border: 1px solid #ddd; /* Серая рамка */
         }
         h1 {
             margin-bottom: 20px;
-            color: #333;
+            color: #4CAF50; /* Зеленый цвет */
+        }
+        .header {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #4CAF50; /* Зеленый цвет */
         }
         input[type="file"] {
             margin-bottom: 20px;
+            background-color: #fff; /* Белый фон для input */
+            color: #000; /* Черный текст */
+            border: 1px solid #4CAF50; /* Зеленая рамка */
+            padding: 10px;
+            border-radius: 5px;
         }
         button {
-            background-color: #007bff;
-            color: #fff;
+            background-color: #4CAF50; /* Зеленый фон */
+            color: #fff; /* Белый текст */
             border: none;
             padding: 10px 20px;
             border-radius: 5px;
             cursor: pointer;
+            transition: background-color 0.3s ease;
         }
         button:hover {
-            background-color: #0056b3;
+            background-color: #45a049; /* Темно-зеленый при наведении */
         }
         .message {
             margin-top: 20px;
-            color: #28a745;
+            color: #4CAF50; /* Зеленый цвет */
         }
         .error {
-            color: #dc3545;
+            color: #ff4444; /* Красный цвет для ошибок */
         }
     </style>
 </head>
 <body>
     <div class="container">
+        <div class="header">Определитель тональности текста от ILBM</div>
         <h1>Загрузите XLSX файл</h1>
         <form action="/upload" method="POST" enctype="multipart/form-data">
             <input type="file" name="file" accept=".xlsx" required>

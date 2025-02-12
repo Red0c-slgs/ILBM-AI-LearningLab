@@ -45,6 +45,13 @@ def upload_file():
         return render_template('upload.html', error="Недопустимый формат файла")
 
 
+@app.route('/text', methods=['POST'])
+def text_mess_get():
+
+    pass
+
+
+
 
 if __name__ == '__main__':
     app.run(debug=True)
