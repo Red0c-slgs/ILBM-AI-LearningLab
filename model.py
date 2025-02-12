@@ -25,26 +25,37 @@ def get_proba(data):
     if data is list[str]: # если текст велик
         results = [analysis(el) for el in data]
         n = len(results)
-        proba = np.ndarray([0, 0, 0])
+        proba = np.array([0, 0, 0])
         for score in results:
             proba += score
-        proba /= np.ndarray([n, n, n])
+        proba /= np.array([n, n, n])
     else: proba = analysis(data)
     return proba
 
 
-def get_sentiment(text: str, return_type: str = 'label', passing_threshold: float = 1/3) -> str | tuple[str, float] | np.ndarray:
+def get_sentiment(text: str, return_type: str = 'score-label', passing_threshold: float = 1/3, emoji: bool = False,
+                  coefficient: float = 1.5, start_boost: float = 0.5) -> str | tuple[str, float] | np.ndarray:
     """Определяет тональность текста text. return_type может быть: 'label' - наибольшая метка, 'score' - числовая оценка,
-    'score-label' - числовая оценка, переведенная в метку, 'proba' - вероятности для каждой метки"""
+    'score-label' - числовая оценка, переведенная в метку, 'proba' - вероятности для каждой метки. passing_threshold -
+    порог для определения меток. emoji - поиск и учет эмотиконов"""
     # обработка текста
     data = preprocessing(text)
     proba = get_proba(data)
+    # Учет эмотиконов
+    if emoji:
+        emoji_vector = find_emoticons(text, coefficient, start_boost)
+        for el in range(3):
+            if emoji_vector[el]:
+                proba[el] += emoji_vector[el]
+        if any(emoji_vector) != 0:
+            proba /= [2, 2, 2]
     # Выбор типа возвращаемых данных
     lbl = ['B', 'N', 'G']
     if return_type == 'label':
         return lbl[proba.argmax()]
     if return_type == 'score':
         return proba.dot([-1, 0, 1])
+    # Преимущественно
     if return_type == 'score-label':
         score = proba.dot([-1, 0, 1])
         if score > passing_threshold:
@@ -52,6 +63,13 @@ def get_sentiment(text: str, return_type: str = 'label', passing_threshold: floa
         if score > - passing_threshold:
             return 'N', score
         return 'B', score
+    if return_type == 'proba-label':
+        score = proba.dot([-1, 0, 1])
+        if score > passing_threshold:
+            return 'G', proba
+        if score > - passing_threshold:
+            return 'N', proba
+        return 'B', proba
     return proba
 
 
@@ -66,7 +84,7 @@ def clean_html(text: str) -> str:
 def split_sentence(text: str, window_size: int = 514) -> list[str]:
     """Разбивает большой текст на предложения"""
     sentences = []  # список предложений
-    for sentence in re.split(r'(?<=[.!?…]) ', text):
+    for sentence in re.split(r"(?<=[.!?…]) ", text):
         if len(sentence) > window_size: # если предложение больше окна
             short_sentences = []
             words = sentence.split()
@@ -92,23 +110,104 @@ def preprocessing(text, window_size: int = 514) -> str | list[str]:
     return text
 
 
+def find_emoticons(text: str, coefficient: float = 1.5, start_boost: float = 0.5) -> list[float]:
+    """Принимает текст text и ищет смайлики. coefficient - коэффициент увеличения значения тональности по направлению,
+    в котором найден эмотикон. start_boost - стартовая прибавка к значению тональности при первом обнаружении. Возвращает вектор тональности"""
+    vector = [0.0, 0.0, 0.0]
+    # проверку на простые смайлики ')' и '('
+    count_close = text.count(')')
+    count_open = text.count('(')
+    if count_close > count_open:
+        vector[2] = start_boost
+    elif count_open > count_close:
+        vector[0] = start_boost
+
+    positive_emoticons = [":)", ":-)", "=)", ":D", ":-D", "=D", ";)", ";-)", ";)", ":-)", ":>", ":->", ":]", ":-]",
+                          "=]", ":}", ":-}", "=}", "(:", "(-:", "(=", "C:", "c:", "^_^", "^^", "^-^", "('v')", "(^_^)",
+                          "(^^)", "(^-^)", "(*^_^*)", "(*^^*)", "(*^-^*)"]
+    negative_emoticons = [":(", ":-(", "=(", ":'(", ":-'(", "='(", ">:(", ">:-(", ">=(", "D:", "D-:", "D=", ">:O",
+                          ">:-O", ">=O", ">:|", ">:-|", ">=|", ":/", ":-/", "=/", ":\\", ":-\\", "=\\", ":S", ":-S",
+                          "=S", ">:S", ">:-S", ">=S", ">:\\", ">:-\\", ">=\\", ">:[", ">:-[", ">=[", ">:{", ">:-{",
+                          ">={", ">:'(", ">:-'(", ">='(", "T_T", "T.T", ":'-(", ":'-|", ":'-{", ":'-[", ":'-\\", ":'-/",
+                          ":'-S", ":'-O", ":'-D"]
+    # проверка на смайлики
+    for word in text.split():
+        if word in positive_emoticons:
+            if not vector[2]:
+                vector[2] = start_boost
+            else:
+                vector[2] *= coefficient
+        elif word in negative_emoticons:
+            if not vector[0]:
+                vector[0] = start_boost
+            else:
+                vector[0] *= coefficient
+    return vector
+
+
+'''Нужно добавить лемманизацию имен!'''
 # # Тесты
 # start_time = time.time()
 #
 #
 # # dataset
 # dataset = pd.read_excel('dataset_comments_35.xlsx')
-# dataset['MessageText'] = dataset['MessageText'].apply(clean_html)
-# sentiments = [get_sentiment(text, return_type='score-label') for text in dataset['MessageText']] # Результат
+# sentiments = [get_sentiment(text, return_type='proba-label', emoji=False) for text in dataset['MessageText']] # Результат
+# sentiments2 = [get_sentiment(text, return_type='proba-label', emoji=True) for text in dataset['MessageText']]
 #
 # print(time.time()-start_time)
 # print(sentiments)
-#
-# count_True = 0
-# for i in range(85):
-#     if dataset['Class'][i] == sentiments[i][0].upper():
-#         count_True += 1
-# print(count_True/85)
 # dataset['Result'] = sentiments
+# dataset['Result_Emoji'] = sentiments2
+# count_True = 0
+# for i in range(168):
+#     if dataset['Class'][i] == dataset['Result'][i][0][0].upper():
+#         count_True += 1
+#     else:
+#         print(dataset.iloc[i, [2, 3, 4]], '\n')
+# print('-'*150)
+# print('Result', count_True/168)
+# count_True2 = 0
+# for i in range(168):
+#     if dataset['Class'][i] == dataset['Result_Emoji'][i][0][0].upper():
+#         count_True2 += 1
+#     else:
+#         print(dataset.iloc[i, [2, 3, 4]], '\n')
+# print('Result_Emoji', count_True2/168)
 #
+# result_data = pd.DataFrame({
+#     "Имя": [],
+#     "Счет": []
+# })
+# result_data.loc[len(result_data)] = ['Result', count_True/168]
+# result_data.loc[len(result_data)] = ['Result_Emoji', count_True2/168]
+#
+# # for start in range(70, 101, 1):
+# #     start /= 100
+# #     for coef in range(110, 210, 10):
+# #         coef /= 100
+# #         sentiments = [get_sentiment(text, return_type='proba-label', emoji=True, coefficient=coef, start_boost=start) for text in dataset['MessageText']]
+# #         count_True = 0
+# #         for i in range(168):
+# #             if dataset['Class'][i] == sentiments[i][0][0].upper():
+# #                 count_True += 1
+# #         print(f'{start} {coef}: {count_True/168}')
+# #         result_data.loc[len(result_data)] = [f'{start} {coef}', count_True/168]
+# #
+# # result_data.to_excel('Result_data.xlsx')
+#
+#
+# for threshold in range(10, 90, 1):
+#     start = 0.7
+#     coef = 1.5
+#     threshold /= 100
+#     sentiments = [get_sentiment(text, return_type='proba-label', passing_threshold=threshold, emoji=True, coefficient=coef, start_boost=start) for text in dataset['MessageText']]
+#     count_True = 0
+#     for i in range(168):
+#         if dataset['Class'][i] == sentiments[i][0][0].upper():
+#             count_True += 1
+#     print(f'{start} {coef} {threshold}: {count_True/168}')
+#     result_data.loc[len(result_data)] = [f'{start} {coef} {threshold}', count_True/168]
+#
+# result_data.to_excel('Result_data_threshold.xlsx')
 # dataset.to_excel('Model1.xlsx')
