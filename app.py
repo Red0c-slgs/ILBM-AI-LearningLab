@@ -9,7 +9,7 @@ app = Flask(__name__)
 
 # Папка для загрузки файлов
 # Добавить проверку на наличие свободной директории в папке
-UPLOAD_FOLDER = 'dataset_comments_500'
+UPLOAD_FOLDER = 'upload'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 # Разрешенные расширения файлов
