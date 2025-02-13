@@ -41,7 +41,7 @@ def text_lengths_by_tone(dataset: pd.DataFrame):
 
 
 def top_words_by_tone(dataset: pd.DataFrame):
-    # Функция для подсчета частых слов
+    """Функция для подсчета частых слов по тонам"""
     def get_top_words(texts, top_n=5):
         words = ' '.join(texts).split()
         words = [re.sub(r'[^\w\s]', '', word) for word in words if re.sub(r'[^\w\s]', '', word).lower() not in stopwords.words('russian')]
@@ -55,6 +55,7 @@ def top_words_by_tone(dataset: pd.DataFrame):
 
 
 def tone_over_time(dataset: pd.DataFrame):
+    """Тональность по временным меткам (округление по месяцам)"""
     # Преобразуем столбец 'Date' в datetime
     dataset['SubmitDate'] = pd.to_datetime(dataset['SubmitDate'])
     # Округляем даты до месяцев
@@ -68,6 +69,7 @@ def tone_over_time(dataset: pd.DataFrame):
 
 
 def users_tone(dataset: pd.DataFrame):
+    """Тональности пользователей"""
     # Группировка по источнику и тональности
     source_sentiment = dataset.groupby(['UserSenderId', 'Sentiment']).size().unstack(fill_value=0)
     # Преобразуем в словарь
