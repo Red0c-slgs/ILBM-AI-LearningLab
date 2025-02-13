@@ -27,7 +27,7 @@ def bar_chart(dataset: pd.DataFrame):
 
 def text_lengths_by_tone(dataset: pd.DataFrame):
     """Статистика длины текстов по тональности"""
-    dataset['TextLength'] = df['MessageText'].apply(len) # Столбец с длиной текста
+    dataset['TextLength'] = dataset['MessageText'].apply(len) # Столбец с длиной текста
     length_stats = {}
     for label in ['B', 'N', 'G']:
         length_stats[label] = {
