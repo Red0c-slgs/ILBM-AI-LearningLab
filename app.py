@@ -49,11 +49,9 @@ def upload_file():
 def text_mess_get():
     # Получаем данные из запроса
     data = request.json  # Ожидаем JSON с ключом "text"
-
     # Проверяем, есть ли текст в запросе
     if not data or 'text' not in data:
         return jsonify({"error": "Текст не предоставлен"}), 400
-
     text = data['text']
     sentiment = "Good"
     return jsonify({
