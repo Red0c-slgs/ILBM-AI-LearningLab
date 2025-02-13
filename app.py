@@ -78,15 +78,14 @@ def upload_file():
 @app.route('/text', methods=['POST'])
 def text_mess_get():
     # Получаем данные из запроса
-    data = request.form.get("text")  # Ожидаем JSON с ключом "text"
+    data = request.form.get("text")
     if not data:
         return render_template('upload.html', error="Текст не предоставлен")
-
-        # Пример анализа тональности текста
-    sentiment = "Good"  # Заглушка для анализа тональности
-
+    sentiment = text_sentiment(data)
     return render_template('upload.html', message=f"Тональность текста: {sentiment}")
 
+def data_to_model():
+    pass
 
 if __name__ == '__main__':
     app.run(debug=True)
