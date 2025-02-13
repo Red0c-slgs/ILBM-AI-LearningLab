@@ -82,10 +82,10 @@ def get_sentiment(text: str, return_type: str = 'score-label', passing_threshold
     if return_type == 'score-label':
         score = proba.dot([-1, 0, 1])
         if score > passing_threshold:
-            return 'G', score
+            return 'G'
         if score > - passing_threshold:
-            return 'N', score
-        return 'B', score
+            return 'N'
+        return 'B'
     if return_type == 'proba-label':
         score = proba.dot([-1, 0, 1])
         if score > passing_threshold:
