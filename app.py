@@ -19,16 +19,6 @@ ALLOWED_EXTENSIONS = {'xlsx','csv'}
 #мб сделать распрасивание для cvs и ods
 
 
-def data_statistics(dataset: pd.DataFrame):
-    """Принимает датасет и возвращает json данные для столбчатой диаграммы"""
-    labels = ['B', 'N', 'G']
-    sentiment_counts = dataset['Sentiment'].value_counts() # Подсчет количества каждого элемента
-    sentiment_counts = sentiment_counts.reindex(labels, fill_value=0) # Если нужно убедиться, что все метки (B, N, G) присутствуют, даже если их количество равно 0
-    counts_list = sentiment_counts[labels].tolist() # Преобразуем в список
-    # Возврат данных для столбчатой диаграммы
-    return {"labels": labels, "counts": counts_list}
-
-
 def data_sentiment(data_name: str):
     """Принимает название файла с расширением (и относительным путем), обрабатывает и возвращает датасет"""
     dataset = pd.read_excel(data_name)
