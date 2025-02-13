@@ -1,45 +1,67 @@
+"""Оптимальные настройки модели: return_type='score-label', passing_threshold: float=1/3, emoji=True, start_boost=0.7, coefficient=1.5, del_name=True, name_thresh: float=0.75"""
 import torch
 import time
 import re
-from transformers import AutoTokenizer, AutoModelForSequenceClassification
+from transformers import AutoTokenizer, pipeline
 import pandas as pd
 import numpy as np
 from bs4 import BeautifulSoup
+import nltk
+import pymorphy3
+
+# Инициализация анализатора
+morph = pymorphy3.MorphAnalyzer()
 
 # Подготовка модели
-model_checkpoint = 'cointegrated/rubert-tiny-sentiment-balanced'
-tokenizer = AutoTokenizer.from_pretrained(model_checkpoint) # токенизация
-model = AutoModelForSequenceClassification.from_pretrained(model_checkpoint) # загрузка модели
+model_path = "cardiffnlp/twitter-xlm-roberta-base-sentiment"
+tokenizer = AutoTokenizer.from_pretrained(model_path, use_fast=False)
+sentiment_task = pipeline("sentiment-analysis", model=model_path, tokenizer=tokenizer)
 
 
-def analysis(text):
+def upload_smiles(name: str) -> set[str]:
+    result = set([])
+    with open(name, 'r', encoding="utf-8") as f:
+        smiles = f.read().splitlines()
+        for smile in smiles:
+            if smile:
+                result.add(smile)
+    return result
+
+
+# Смайлы
+positive_emoticons = upload_smiles('emoji_positive.txt')
+negative_emoticons = upload_smiles('emoji_negative.txt')
+
+
+def analysis(text: str) -> np.ndarray:
     """Анализирует текст и возвращает все вероятности"""
     with torch.no_grad():
-        inputs = tokenizer(text, return_tensors='pt', padding=True).to(model.device)
-        proba = torch.sigmoid(model(**inputs).logits).cpu().numpy()[0]
-    return proba
+        proba = sentiment_task(text, return_all_scores=True)
+    return np.array([vec['score'] for vec in proba[0]])
 
 
-def get_proba(data):
+def get_proba(data: str | list[str]) -> np.ndarray:
     """В зависимости от входных данных возвращает результат анализа текста"""
-    if data is list[str]: # если текст велик
+    if isinstance(data, list): # если текст велик
         results = [analysis(el) for el in data]
         n = len(results)
-        proba = np.array([0, 0, 0])
+        proba = np.array([0.0, 0.0, 0.0])
         for score in results:
             proba += score
         proba /= np.array([n, n, n])
-    else: proba = analysis(data)
+    else:
+        proba = analysis(data)
     return proba
 
 
 def get_sentiment(text: str, return_type: str = 'score-label', passing_threshold: float = 1/3, emoji: bool = False,
-                  coefficient: float = 1.5, start_boost: float = 0.5) -> str | tuple[str, float] | np.ndarray:
+                  coefficient: float = 1.5, start_boost: float = 0.7, del_name: bool = False, name_thresh: float = 0.75)\
+        -> str | tuple[str, float] | np.ndarray:
     """Определяет тональность текста text. return_type может быть: 'label' - наибольшая метка, 'score' - числовая оценка,
     'score-label' - числовая оценка, переведенная в метку, 'proba' - вероятности для каждой метки. passing_threshold -
     порог для определения меток. emoji - поиск и учет эмотиконов"""
     # обработка текста
-    data = preprocessing(text)
+    data = preprocessing(text, del_name=del_name, name_thresh=name_thresh)
     proba = get_proba(data)
     # Учет эмотиконов
     if emoji:
@@ -49,6 +71,7 @@ def get_sentiment(text: str, return_type: str = 'score-label', passing_threshold
                 proba[el] += emoji_vector[el]
         if any(emoji_vector) != 0:
             proba /= [2, 2, 2]
+    # print(f'DATA: {data}\n{proba.dot([-1, 0, 1])}   {proba}')
     # Выбор типа возвращаемых данных
     lbl = ['B', 'N', 'G']
     if return_type == 'label':
@@ -73,9 +96,9 @@ def get_sentiment(text: str, return_type: str = 'score-label', passing_threshold
     return proba
 
 
-def clean_html(text: str) -> str:
+def clean_html(text: str) -> str | None:
     """Очищает текст text от HTML-разметки"""
-    if pd.isna(text):  # Проверка на NaN
+    if text is None or pd.isna(text):  # Проверка на NaN
         return text
     soup = BeautifulSoup(text, 'html.parser')
     return soup.get_text()
@@ -88,12 +111,12 @@ def split_sentence(text: str, window_size: int = 514) -> list[str]:
         if len(sentence) > window_size: # если предложение больше окна
             short_sentences = []
             words = sentence.split()
-            i = 0
-            while i < len(words):
+            count = 0
+            while count < len(words):
                 short_sentence = ''
-                while len(short_sentence + words[i]) < window_size:
-                    short_sentence += words[i]
-                    i+=1
+                while len(short_sentence + ' ' + words[count]) < window_size:
+                    short_sentence += ' ' + words[count] if short_sentence else words[count]
+                    count += 1
                 short_sentences.append(short_sentence)
             sentences.extend(short_sentences)
         else:
@@ -101,16 +124,29 @@ def split_sentence(text: str, window_size: int = 514) -> list[str]:
     return sentences
 
 
-def preprocessing(text, window_size: int = 514) -> str | list[str]:
+def delete_name(text: str, prob_thresh: float = 0.75) -> str:
+    """Удаляет имена"""
+    for word in nltk.word_tokenize(text):
+        for p in morph.parse(word):
+            if 'Name' in p.tag and p.score >= prob_thresh:
+                text = text.replace(word, '')
+    # Удаление лишних пробелов
+    text = ' '.join(text.split())
+    return text
+
+
+def preprocessing(text: str, window_size: int = 514, del_name: bool = False, name_thresh: float = 0.75) -> str | list[str]:
     """Предварительная обработка текстов"""
     text = clean_html(text)
+    if del_name:
+        text = delete_name(text, prob_thresh=name_thresh)
     if len(text) > window_size:
         mini_text = split_sentence(text)
         return mini_text
     return text
 
 
-def find_emoticons(text: str, coefficient: float = 1.5, start_boost: float = 0.5) -> list[float]:
+def find_emoticons(text: str, coefficient: float = 1.5, start_boost: float = 0.7) -> list[float]:
     """Принимает текст text и ищет смайлики. coefficient - коэффициент увеличения значения тональности по направлению,
     в котором найден эмотикон. start_boost - стартовая прибавка к значению тональности при первом обнаружении. Возвращает вектор тональности"""
     vector = [0.0, 0.0, 0.0]
@@ -122,14 +158,6 @@ def find_emoticons(text: str, coefficient: float = 1.5, start_boost: float = 0.5
     elif count_open > count_close:
         vector[0] = start_boost
 
-    positive_emoticons = [":)", ":-)", "=)", ":D", ":-D", "=D", ";)", ";-)", ";)", ":-)", ":>", ":->", ":]", ":-]",
-                          "=]", ":}", ":-}", "=}", "(:", "(-:", "(=", "C:", "c:", "^_^", "^^", "^-^", "('v')", "(^_^)",
-                          "(^^)", "(^-^)", "(*^_^*)", "(*^^*)", "(*^-^*)"]
-    negative_emoticons = [":(", ":-(", "=(", ":'(", ":-'(", "='(", ">:(", ">:-(", ">=(", "D:", "D-:", "D=", ">:O",
-                          ">:-O", ">=O", ">:|", ">:-|", ">=|", ":/", ":-/", "=/", ":\\", ":-\\", "=\\", ":S", ":-S",
-                          "=S", ">:S", ">:-S", ">=S", ">:\\", ">:-\\", ">=\\", ">:[", ">:-[", ">=[", ">:{", ">:-{",
-                          ">={", ">:'(", ">:-'(", ">='(", "T_T", "T.T", ":'-(", ":'-|", ":'-{", ":'-[", ":'-\\", ":'-/",
-                          ":'-S", ":'-O", ":'-D"]
     # проверка на смайлики
     for word in text.split():
         if word in positive_emoticons:
@@ -145,28 +173,27 @@ def find_emoticons(text: str, coefficient: float = 1.5, start_boost: float = 0.5
     return vector
 
 
-'''Нужно добавить лемманизацию имен!'''
 # # Тесты
 # start_time = time.time()
 #
 #
 # # dataset
 # dataset = pd.read_excel('dataset_comments_35.xlsx')
-# sentiments = [get_sentiment(text, return_type='proba-label', emoji=False) for text in dataset['MessageText']] # Результат
-# sentiments2 = [get_sentiment(text, return_type='proba-label', emoji=True) for text in dataset['MessageText']]
+# # sentiments = [get_sentiment(text, return_type='proba-label', emoji=False, start_boost=0.7, coefficient=1.5, del_name=True) for text in dataset['MessageText']] # Результат
+# sentiments2 = [get_sentiment(text, return_type='proba-label', emoji=True, start_boost=0.7, coefficient=1.5, del_name=True) for text in dataset['MessageText']]
 #
 # print(time.time()-start_time)
-# print(sentiments)
-# dataset['Result'] = sentiments
+# # print(sentiments)
+# # dataset['Result'] = sentiments
 # dataset['Result_Emoji'] = sentiments2
-# count_True = 0
-# for i in range(168):
-#     if dataset['Class'][i] == dataset['Result'][i][0][0].upper():
-#         count_True += 1
-#     else:
-#         print(dataset.iloc[i, [2, 3, 4]], '\n')
-# print('-'*150)
-# print('Result', count_True/168)
+# # count_True = 0
+# # for i in range(168):
+# #     if dataset['Class'][i] == dataset['Result'][i][0][0].upper():
+# #         count_True += 1
+# #     else:
+# #         print(dataset.iloc[i, [2, 3, 4]], '\n')
+# # print('-'*150)
+# # print('Result', count_True/168)
 # count_True2 = 0
 # for i in range(168):
 #     if dataset['Class'][i] == dataset['Result_Emoji'][i][0][0].upper():
@@ -174,13 +201,13 @@ def find_emoticons(text: str, coefficient: float = 1.5, start_boost: float = 0.5
 #     else:
 #         print(dataset.iloc[i, [2, 3, 4]], '\n')
 # print('Result_Emoji', count_True2/168)
-#
+# #
 # result_data = pd.DataFrame({
 #     "Имя": [],
 #     "Счет": []
 # })
-# result_data.loc[len(result_data)] = ['Result', count_True/168]
-# result_data.loc[len(result_data)] = ['Result_Emoji', count_True2/168]
+# # result_data.loc[len(result_data)] = ['Result', count_True/168]
+# # result_data.loc[len(result_data)] = ['Result_Emoji', count_True2/168]
 #
 # # for start in range(70, 101, 1):
 # #     start /= 100
@@ -197,17 +224,15 @@ def find_emoticons(text: str, coefficient: float = 1.5, start_boost: float = 0.5
 # # result_data.to_excel('Result_data.xlsx')
 #
 #
-# for threshold in range(10, 90, 1):
-#     start = 0.7
-#     coef = 1.5
-#     threshold /= 100
-#     sentiments = [get_sentiment(text, return_type='proba-label', passing_threshold=threshold, emoji=True, coefficient=coef, start_boost=start) for text in dataset['MessageText']]
+# for thresh in range(100, 120, 5):
+#     thresh /= 100
+#     sentiments = [get_sentiment(text, return_type='proba-label', emoji=True, start_boost=0.7, coefficient=1.5, del_name=True, name_thresh=thresh) for text in dataset['MessageText']]
 #     count_True = 0
 #     for i in range(168):
 #         if dataset['Class'][i] == sentiments[i][0][0].upper():
 #             count_True += 1
-#     print(f'{start} {coef} {threshold}: {count_True/168}')
-#     result_data.loc[len(result_data)] = [f'{start} {coef} {threshold}', count_True/168]
+#     print(f'{thresh}: {count_True/168}')
+#     result_data.loc[len(result_data)] = [f'{thresh}', count_True/168]
 #
-# result_data.to_excel('Result_data_threshold.xlsx')
+# result_data.to_excel('Result_data_thresh.xlsx')
 # dataset.to_excel('Model1.xlsx')
