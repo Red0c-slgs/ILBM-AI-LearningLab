@@ -9,7 +9,7 @@ app = Flask(__name__)
 
 # Папка для загрузки файлов
 # Добавить проверку на наличие свободной директории в папке
-UPLOAD_FOLDER = 'uploads'
+UPLOAD_FOLDER = 'upload'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 # Разрешенные расширения файлов
@@ -48,18 +48,14 @@ def upload_file():
 @app.route('/text', methods=['POST'])
 def text_mess_get():
     # Получаем данные из запроса
-    data = request.json  # Ожидаем JSON с ключом "text"
-    # Проверяем, есть ли текст в запросе
-    if not data or 'text' not in data:
-        return jsonify({"error": "Текст не предоставлен"}), 400
-    text = data['text']
-    sentiment = "Good"
-    return jsonify({
-        "text": text,
-        "sentiment": sentiment
-    })
+    data = request.form.get("text")  # Ожидаем JSON с ключом "text"
+    if not data:
+        return render_template('upload.html', error="Текст не предоставлен")
 
+        # Пример анализа тональности текста
+    sentiment = "Good"  # Заглушка для анализа тональности
 
+    return render_template('upload.html', message=f"Тональность текста: {sentiment}")
 
 
 if __name__ == '__main__':
