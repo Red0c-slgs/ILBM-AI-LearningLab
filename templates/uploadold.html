@@ -7,73 +7,85 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            background-color: #fff; /* Белый фон */
+            background-color: #f0f2f5; /* Светлый фон */
             margin: 0;
             padding: 0;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
-            color: #000; /* Черный текст */
+            color: #333; /* Темно-серый текст */
         }
         .container {
-            background-color: #f9f9f9; /* Светло-серый контейнер */
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            background-color: #fff; /* Белый контейнер */
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
             text-align: center;
-            border: 1px solid #ddd; /* Серая рамка */
             max-width: 500px;
             width: 100%;
         }
         h1 {
             margin-bottom: 20px;
             color: #4CAF50; /* Зеленый цвет */
+            font-size: 24px;
         }
         .header {
-            font-size: 24px;
+            font-size: 28px;
             font-weight: bold;
-            margin-bottom: 20px;
+            margin-bottom: 30px;
             color: #4CAF50; /* Зеленый цвет */
         }
-        textarea {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #4CAF50; /* Зеленая рамка */
-            border-radius: 5px;
-            margin-bottom: 20px;
-            font-family: Arial, sans-serif;
+        .file-upload-container {
+            border: 2px dashed #4CAF50; /* Зеленая пунктирная рамка */
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            background-color: #f9f9f9; /* Светлый фон */
+            transition: border-color 0.3s ease, background-color 0.3s ease;
+        }
+        .file-upload-container:hover {
+            border-color: #45a049; /* Темно-зеленая рамка при наведении */
+            background-color: #f0f0f0; /* Слегка темный фон при наведении */
+        }
+        .file-upload-text {
             font-size: 16px;
-            resize: vertical; /* Разрешаем изменение высоты */
+            color: #555; /* Темно-серый текст */
+            display: block;
+            margin-bottom: 10px;
         }
         input[type="file"] {
-            margin-bottom: 20px;
-            background-color: #fff; /* Белый фон для input */
-            color: #000; /* Черный текст */
-            border: 1px solid #4CAF50; /* Зеленая рамка */
-            padding: 10px;
-            border-radius: 5px;
-            width: 100%;
+            display: none; /* Скрываем стандартный input */
         }
-        button {
+        .submit-button {
             background-color: #4CAF50; /* Зеленый фон */
             color: #fff; /* Белый текст */
             border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
+            padding: 12px 24px;
+            border-radius: 8px;
             cursor: pointer;
-            transition: background-color 0.3s ease;
-            margin: 5px;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            font-size: 16px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
         }
-        button:hover {
+        .submit-button:hover {
             background-color: #45a049; /* Темно-зеленый при наведении */
+            transform: scale(1.05); /* Увеличение кнопки при наведении */
+        }
+        .submit-button:active {
+            transform: scale(0.95); /* Уменьшение кнопки при нажатии */
         }
         .message {
             margin-top: 20px;
             color: #4CAF50; /* Зеленый цвет */
+            font-weight: bold;
         }
         .error {
+            margin-top: 20px;
             color: #ff4444; /* Красный цвет для ошибок */
+            font-weight: bold;
         }
     </style>
 </head>
@@ -81,96 +93,39 @@
     <div class="container">
         <div class="header">Определитель тональности текста от ILBM</div>
 
-        <!-- Форма для ввода текста -->
-        <h1>Введите текст для анализа</h1>
-        <form id="textForm">
-            <textarea id="textInput" rows="5" placeholder="Введите ваш текст здесь..."></textarea>
-            <br>
-            <button type="button" onclick="analyzeText()">Анализировать текст</button>
-        </form>
-
         <!-- Форма для загрузки файла -->
         <h1>Загрузите файл для анализа</h1>
-        <form id="fileForm" action="/upload" method="POST" enctype="multipart/form-data">
-            <input type="file" name="file" accept=".xlsx" required>
+        <form id="fileForm" action="{{ url_for('upload_file') }}" method="POST" enctype="multipart/form-data">
+            <div class="file-upload-container">
+                <label for="fileInput" class="file-upload-label">
+                    <span class="file-upload-text">Нажмите для выбора файла</span>
+                    <input type="file" id="fileInput" name="file" accept=".xlsx, .csv" required>
+                </label>
+            </div>
             <br>
-            <button type="submit">Анализировать файл</button>
+            <button type="submit" class="submit-button">
+                📂 Анализировать файл
+            </button>
+        </form>
+
+        <!-- Форма для ввода текста -->
+        <h1>Введите текст для анализа</h1>
+        <form id="textForm" action="{{ url_for('text_mess_get') }}" method="POST">
+            <textarea id="textInput" name="text" rows="5" placeholder="Введите ваш текст здесь..." required></textarea>
+            <br>
+            <button type="submit" class="submit-button">
+                📝 Анализировать текст
+            </button>
         </form>
 
         <!-- Блоки для отображения результата и ошибок -->
-        <div id="result" class="message"></div>
-        <div id="error" class="error"></div>
+        {% if message %}
+            <div class="message">{{ message }}</div>
+        {% endif %}
+        {% if error %}
+            <div class="error">{{ error }}</div>
+        {% endif %}
     </div>
-
-    <script>
-        // Функция для отправки текста на сервер
-        async function analyzeText() {
-            const text = document.getElementById('textInput').value;
-            const resultDiv = document.getElementById('result');
-            const errorDiv = document.getElementById('error');
-
-            // Очищаем предыдущие сообщения
-            resultDiv.textContent = '';
-            errorDiv.textContent = '';
-
-            if (!text) {
-                errorDiv.textContent = 'Пожалуйста, введите текст для анализа.';
-                return;
-            }
-
-            try {
-                // Отправляем POST-запрос на сервер
-                const response = await fetch('/text', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ text: text }),
-                });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    // Отображаем результат
-                    resultDiv.textContent = `Тональность текста: ${data.sentiment}`;
-                } else {
-                    // Отображаем ошибку
-                    errorDiv.textContent = data.error || 'Произошла ошибка при анализе текста.';
-                }
-            } catch (error) {
-                errorDiv.textContent = 'Ошибка при отправке запроса на сервер.';
-            }
-        }
-
-        // Обработка отправки файла
-        document.getElementById('fileForm').addEventListener('submit', async (e) => {
-            e.preventDefault(); // Предотвращаем стандартную отправку формы
-
-            const formData = new FormData(e.target);
-            const resultDiv = document.getElementById('result');
-            const errorDiv = document.getElementById('error');
-
-            // Очищаем предыдущие сообщения
-            resultDiv.textContent = '';
-            errorDiv.textContent = '';
-
-            try {
-                const response = await fetch('/upload', {
-                    method: 'POST',
-                    body: formData,
-                });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    resultDiv.textContent = data.message || 'Файл успешно обработан.';
-                } else {
-                    errorDiv.textContent = data.error || 'Ошибка при обработке файла.';
-                }
-            } catch (error) {
-                errorDiv.textContent = 'Ошибка при отправке файла на сервер.';
-            }
-        });
-    </script>
 </body>
 </html>
+

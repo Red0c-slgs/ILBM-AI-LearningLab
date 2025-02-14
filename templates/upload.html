@@ -3,128 +3,101 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Определитель тональности текста от ILBM</title>
+    <title>Анализ тональности текста</title>
+    <!-- Подключаем Bootstrap CSS -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body {
-            font-family: Arial, sans-serif;
-            background-color: #f0f2f5; /* Светлый фон */
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            color: #333; /* Темно-серый текст */
+            background-color: #f8f9fa; /* Светло-серый фон */
         }
-        .container {
-            background-color: #fff; /* Белый контейнер */
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            text-align: center;
-            max-width: 500px;
-            width: 100%;
+        .navbar {
+            background-color: #28a745; /* Зеленый цвет для навбара */
         }
-        h1 {
-            margin-bottom: 20px;
-            color: #4CAF50; /* Зеленый цвет */
-            font-size: 24px;
+        .navbar-brand, .navbar-text {
+            color: white !important; /* Белый текст в навбаре */
         }
-        .header {
-            font-size: 28px;
-            font-weight: bold;
-            margin-bottom: 30px;
-            color: #4CAF50; /* Зеленый цвет */
+        .btn-primary {
+            background-color: #28a745; /* Зеленый цвет для кнопок */
+            border-color: #28a745;
         }
-        .file-upload-container {
-            border: 2px dashed #4CAF50; /* Зеленая пунктирная рамка */
-            border-radius: 12px;
-            padding: 20px;
-            text-align: center;
-            background-color: #f9f9f9; /* Светлый фон */
-            transition: border-color 0.3s ease, background-color 0.3s ease;
+        .btn-primary:hover {
+            background-color: #218838; /* Темно-зеленый при наведении */
+            border-color: #1e7e34;
         }
-        .file-upload-container:hover {
-            border-color: #45a049; /* Темно-зеленая рамка при наведении */
-            background-color: #f0f0f0; /* Слегка темный фон при наведении */
+        .card {
+            border: 1px solid #28a745; /* Зеленая рамка для карточек */
         }
-        .file-upload-text {
-            font-size: 16px;
-            color: #555; /* Темно-серый текст */
-            display: block;
-            margin-bottom: 10px;
+        .card-header {
+            background-color: #28a745; /* Зеленый цвет для заголовка карточки */
+            color: white;
         }
-        input[type="file"] {
-            display: none; /* Скрываем стандартный input */
+        .alert-success {
+            background-color: #d4edda; /* Светло-зеленый для успешных сообщений */
+            border-color: #c3e6cb;
+            color: #155724;
         }
-        .submit-button {
-            background-color: #4CAF50; /* Зеленый фон */
-            color: #fff; /* Белый текст */
-            border: none;
-            padding: 12px 24px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: background-color 0.3s ease, transform 0.2s ease;
-            font-size: 16px;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .submit-button:hover {
-            background-color: #45a049; /* Темно-зеленый при наведении */
-            transform: scale(1.05); /* Увеличение кнопки при наведении */
-        }
-        .submit-button:active {
-            transform: scale(0.95); /* Уменьшение кнопки при нажатии */
-        }
-        .message {
-            margin-top: 20px;
-            color: #4CAF50; /* Зеленый цвет */
-            font-weight: bold;
-        }
-        .error {
-            margin-top: 20px;
-            color: #ff4444; /* Красный цвет для ошибок */
-            font-weight: bold;
+        .alert-danger {
+            background-color: #f8d7da; /* Светло-красный для ошибок */
+            border-color: #f5c6cb;
+            color: #721c24;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">Определитель тональности текста от ILBM</div>
+    <!-- Навбар -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <a class="navbar-brand" href="/">Анализ тональности текста</a>
+    </nav>
 
+    <div class="container mt-4">
         <!-- Форма для загрузки файла -->
-        <h1>Загрузите файл для анализа</h1>
-        <form id="fileForm" action="{{ url_for('upload_file') }}" method="POST" enctype="multipart/form-data">
-            <div class="file-upload-container">
-                <label for="fileInput" class="file-upload-label">
-                    <span class="file-upload-text">Нажмите для выбора файла</span>
-                    <input type="file" id="fileInput" name="file" accept=".xlsx, .csv" required>
-                </label>
+        <div class="card mb-4">
+            <div class="card-header">
+                Загрузите файл для анализа
             </div>
-            <br>
-            <button type="submit" class="submit-button">
-                📂 Анализировать файл
-            </button>
-        </form>
+            <div class="card-body">
+                <form action="/upload" method="post" enctype="multipart/form-data">
+                    <div class="form-group">
+                        <label for="file">Выберите файл (Excel или CSV):</label>
+                        <input type="file" class="form-control-file" id="file" name="file" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Загрузить</button>
+                </form>
+            </div>
+        </div>
 
-        <!-- Форма для ввода текста -->
-        <h1>Введите текст для анализа</h1>
-        <form id="textForm" action="{{ url_for('text_mess_get') }}" method="POST">
-            <textarea id="textInput" name="text" rows="5" placeholder="Введите ваш текст здесь..." required></textarea>
-            <br>
-            <button type="submit" class="submit-button">
-                📝 Анализировать текст
-            </button>
-        </form>
+        <!-- Форма для анализа текста -->
+        <div class="card mb-4">
+            <div class="card-header">
+                Введите текст для анализа
+            </div>
+            <div class="card-body">
+                <form action="/text" method="post">
+                    <div class="form-group">
+                        <label for="text">Текст:</label>
+                        <textarea class="form-control" id="text" name="text" rows="3" required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Анализировать</button>
+                </form>
+            </div>
+        </div>
 
-        <!-- Блоки для отображения результата и ошибок -->
-        {% if message %}
-            <div class="message">{{ message }}</div>
-        {% endif %}
+        <!-- Сообщения об ошибках и результатах -->
         {% if error %}
-            <div class="error">{{ error }}</div>
+        <div class="alert alert-danger" role="alert">
+            {{ error }}
+        </div>
+        {% endif %}
+        {% if message %}
+        <div class="alert alert-success" role="alert">
+            {{ message }}
+        </div>
         {% endif %}
     </div>
+
+    <!-- Подключаем Bootstrap JS и зависимости -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
 </html>
