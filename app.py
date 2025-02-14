@@ -79,13 +79,13 @@ def upload_file():
 def text_mess_get():
     # Получаем данные из запроса
     data = request.form.get("text")
+    sent_dict = {"B":"Негативный", "N":"Нейтральный","G":"Позитивный"}
     if not data:
         return render_template('upload.html', error="Текст не предоставлен")
-    sentiment = text_sentiment(data)
+    sentiment = sent_dict[text_sentiment(data)]
     return render_template('upload.html', message=f"Тональность текста: {sentiment}")
 
-def data_to_model():
-    pass
+
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True,threaded=True)

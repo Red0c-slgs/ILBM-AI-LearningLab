@@ -9,6 +9,8 @@ from bs4 import BeautifulSoup
 import nltk
 import pymorphy3
 
+nltk.download('punkt_tab')
+
 # Инициализация анализатора
 morph = pymorphy3.MorphAnalyzer()
 
