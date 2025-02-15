@@ -5,6 +5,8 @@ import pandas as pd
 import asyncio
 import model
 import model_statistics as ms
+from quart import send_file
+import io
 
 app = Quart(__name__)
 
@@ -74,26 +76,61 @@ async def upload_file():
 
 @app.route('/statistics')
 async def show_statistics():
-    """Отображение статистики анализа файла"""
+    # Получаем имя файла из query-параметров
     filename = request.args.get('filename')
     if not filename:
         return await render_template('upload.html', error="Файл не указан")
 
+    # Полный путь к файлу
     file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+
+    # Проверяем, существует ли файл
     if not os.path.exists(file_path):
         return await render_template('upload.html', error="Файл не найден")
 
-    try:
-        dataset = await data_sentiment(file_path)
-        stats = ms.bar_chart(dataset)
-    except Exception as e:
-        return await render_template('upload.html', error=str(e))
+    # Анализируем файл
+    dataset = await data_sentiment(file_path)
+    stats = ms.bar_chart(dataset)
 
+    # Передаем данные в шаблон statistics.html
     return await render_template(
         'statistics.html',
         labels=stats["labels"],  # Метки для графика
         counts=stats["counts"],  # Данные для графика
-        dataset=dataset  # Данные для таблицы
+        dataset=dataset,  # Данные для таблицы
+        filename=filename  # Имя файла для скачивания
+    )
+
+
+@app.route('/download')
+async def download_file():
+    # Получаем имя файла из query-параметров
+    filename = request.args.get('filename')
+    if not filename:
+        return await render_template('upload.html', error="Файл не указан")
+
+    # Полный путь к файлу
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+
+    # Проверяем, существует ли файл
+    if not os.path.exists(file_path):
+        return await render_template('upload.html', error="Файл не найден")
+
+    # Анализируем файл
+    dataset = await data_sentiment(file_path)
+
+    # Сохраняем датасет в буфер
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        dataset.to_excel(writer, index=False)
+    output.seek(0)
+
+    # Возвращаем файл для скачивания
+    return await send_file(
+        output,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        as_attachment=True,
+        attachment_filename=f"analyzed_{filename}"
     )
 
 
@@ -113,6 +150,5 @@ async def text_mess_get():
 
 
 if __name__ == '__main__':
-    # Создаем папку для загрузки, если она не существует
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
     app.run(debug=True)
