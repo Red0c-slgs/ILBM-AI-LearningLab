@@ -65,6 +65,8 @@ def get_sentiment(text: str, return_type: str = 'score-label', passing_threshold
     порог для определения меток. emoji - поиск и учет эмотиконов"""
     # обработка текста
     data = preprocessing(text, del_name=del_name, name_thresh=name_thresh)
+
+    print(data)
     proba = get_proba(data)
     # Учет эмотиконов
     if emoji:
@@ -142,6 +144,9 @@ def delete_name(text: str, prob_thresh: float = 0.75) -> str:
 
 def preprocessing(text: str, window_size: int = 514, del_name: bool = False, name_thresh: float = 0.75) -> str | list[str]:
     """Предварительная обработка текстов"""
+    text = clean_html(text)
+    text = remove_path(text)
+    text = remove_urls(text)
     if del_name:
         text = delete_name(text, prob_thresh=name_thresh)
     if len(text) > window_size:
@@ -193,6 +198,7 @@ def find_emoticons(text: str, coefficient: float = 1.5, start_boost: float = 0.7
 
     # проверка на смайлики
     for word in text.split():
+        print(word)
         if word in positive_emoticons:
             if not vector[2]:
                 vector[2] = start_boost
@@ -211,6 +217,7 @@ def find_emoticons(text: str, coefficient: float = 1.5, start_boost: float = 0.7
             vector[2] = start_boost
         elif count_open > count_close:
             vector[0] = start_boost
+    print(vector)
     return vector
 
 
