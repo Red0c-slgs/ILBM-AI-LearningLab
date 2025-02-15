@@ -7,6 +7,7 @@ import model
 import model_statistics as ms
 from quart import send_file
 import io
+import time
 
 app = Quart(__name__)
 
@@ -18,13 +19,16 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 ALLOWED_EXTENSIONS = {'xlsx', 'csv'}
 
 
+
 def allowed_file(filename):
     """Проверка расширения файла"""
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
+
 async def data_sentiment(data_name: str):
     """Принимает название файла с расширением, обрабатывает и возвращает датасет"""
+    st = time.time()
     dataset = pd.read_excel(data_name)
     if 'MessageText' not in dataset.columns:  # Если нет колонки с текстом
         raise ValueError("Файл должен содержать колонку 'MessageText'")
@@ -34,8 +38,10 @@ async def data_sentiment(data_name: str):
         sentiment = await asyncio.to_thread(
             model.get_sentiment, text, return_type='score-label', emoji=True, del_name=True
         )
+
         sentiments.append(sentiment)
     dataset['Sentiment'] = sentiments
+    print(f"время = {time.time()-st}")
     return dataset
 
 

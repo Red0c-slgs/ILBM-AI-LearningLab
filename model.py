@@ -8,6 +8,7 @@ import numpy as np
 from bs4 import BeautifulSoup
 import nltk
 import pymorphy3
+
 nltk.download('punkt_tab')
 
 nltk.download('punkt_tab')
@@ -63,6 +64,7 @@ def get_sentiment(text: str, return_type: str = 'score-label', passing_threshold
     """Определяет тональность текста text. return_type может быть: 'label' - наибольшая метка, 'score' - числовая оценка,
     'score-label' - числовая оценка, переведенная в метку, 'proba' - вероятности для каждой метки. passing_threshold -
     порог для определения меток. emoji - поиск и учет эмотиконов"""
+    #print(f'Начата обработка текста {text[:30]}')
     # обработка текста
     data = preprocessing(text, del_name=del_name, name_thresh=name_thresh)
     proba = get_proba(data)
