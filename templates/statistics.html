@@ -14,6 +14,20 @@
         .card-header { background-color: #28a745; color: white; }
         .btn-primary { background-color: #28a745; border-color: #28a745; }
         .btn-primary:hover { background-color: #218838; border-color: #1e7e34; }
+
+        /* Стили для таблицы */
+        .table-container {
+            overflow-x: auto; /* Горизонтальная прокрутка, если таблица слишком широкая */
+        }
+        .table {
+            width: 100%;
+            table-layout: fixed; /* Фиксированная ширина столбцов */
+        }
+        .table th, .table td {
+            word-wrap: break-word; /* Перенос текста */
+            overflow-wrap: break-word; /* Перенос текста */
+            max-width: 300px; /* Максимальная ширина ячейки */
+        }
     </style>
 </head>
 <body>
@@ -24,16 +38,24 @@
     <div class="container mt-4">
         <h2 class="mb-4">Статистика анализа</h2>
 
+        <!-- График -->
         <div class="card mb-4">
             <div class="card-header">Распределение тональности</div>
             <div class="card-body">
                 <canvas id="sentimentChart" width="400" height="200"></canvas>
             </div>
         </div>
+        <!-- Кнопка для возврата на главную -->
 
+        <div class="text-center">
+            <a href="/" class="btn btn-primary">Вернуться на главную</a>
+        </div>
+            </div>
+
+        <!-- Таблица с результатами -->
         <div class="card mb-4">
             <div class="card-header">Результаты анализа</div>
-            <div class="card-body">
+            <div class="card-body table-container">
                 <table class="table table-bordered">
                     <thead>
                         <tr>
@@ -53,10 +75,7 @@
             </div>
         </div>
 
-        <div class="text-center">
-            <a href="/" class="btn btn-primary">Вернуться на главную</a>
-        </div>
-    </div>
+
 
     <script>
         const ctx = document.getElementById('sentimentChart').getContext('2d');
@@ -87,5 +106,10 @@
             }
         });
     </script>
+
+    <!-- Подключаем Bootstrap JS и зависимости -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
 </html>
