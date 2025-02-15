@@ -68,7 +68,7 @@ def get_sentiment(text: str, return_type: str = 'score-label', passing_threshold
     proba = get_proba(data)
     # Учет эмотиконов
     if emoji:
-        emoji_vector = find_emoticons(text, coefficient, start_boost)
+        emoji_vector = find_emoticons(data, coefficient, start_boost)
         for el in range(3):
             if emoji_vector[el]:
                 proba[el] += emoji_vector[el]
@@ -77,6 +77,8 @@ def get_sentiment(text: str, return_type: str = 'score-label', passing_threshold
     # print(f'DATA: {data}\n{proba.dot([-1, 0, 1])}   {proba}')
     # Выбор типа возвращаемых данных
     lbl = ['B', 'N', 'G']
+    if return_type == 'proba':
+        return proba
     if return_type == 'label':
         return lbl[proba.argmax()]
     if return_type == 'score':
@@ -140,7 +142,6 @@ def delete_name(text: str, prob_thresh: float = 0.75) -> str:
 
 def preprocessing(text: str, window_size: int = 514, del_name: bool = False, name_thresh: float = 0.75) -> str | list[str]:
     """Предварительная обработка текстов"""
-    text = clean_html(text)
     if del_name:
         text = delete_name(text, prob_thresh=name_thresh)
     if len(text) > window_size:
@@ -149,17 +150,46 @@ def preprocessing(text: str, window_size: int = 514, del_name: bool = False, nam
     return text
 
 
+def remove_urls(text: str):
+    """
+    Удаляет все URL-адреса из текста.
+
+    :param text: Исходный текст, содержащий URL-адреса.
+    :return: Текст без URL-адресов.
+    """
+    # Регулярное выражение для поиска URL-адресов
+    url_pattern = re.compile(r'https?://\S+|www\.\S+')
+    # Заменяем найденные URL-адреса на пустую строку
+    cleaned_text = url_pattern.sub('', text)
+    return cleaned_text
+
+
+def remove_path(text):
+    """
+    Удаляет путь из текста.
+
+    :param text: Исходный текст, содержащий путь.
+    :return: Текст без пути.
+    """
+    # Регулярное выражение для поиска пути
+    path_pattern = re.compile(r'\b(?:[A-Za-z]:)?[\\/](?:[^\\/<>\s]+[\\/])*[^\\/<>\s]+')
+    # Удаляем найденный путь
+    cleaned_text = path_pattern.sub('', text)
+    return cleaned_text.strip()  # Убираем лишние пробелы
+
+
 def find_emoticons(text: str, coefficient: float = 1.5, start_boost: float = 0.7) -> list[float]:
     """Принимает текст text и ищет смайлики. coefficient - коэффициент увеличения значения тональности по направлению,
     в котором найден эмотикон. start_boost - стартовая прибавка к значению тональности при первом обнаружении. Возвращает вектор тональности"""
     vector = [0.0, 0.0, 0.0]
-    # проверку на простые смайлики ')' и '('
-    count_close = text.count(')')
-    count_open = text.count('(')
-    if count_close > count_open:
-        vector[2] = start_boost
-    elif count_open > count_close:
-        vector[0] = start_boost
+    if isinstance(text, list):
+        result = [find_emoticons(element, coefficient=coefficient, start_boost=start_boost) for element in text]
+        for el in result:
+            for i in range(3):
+                vector[i] += el[i]
+        for i in range(3):
+            vector[i] /= len(result)
+        return vector
 
     # проверка на смайлики
     for word in text.split():
@@ -173,6 +203,14 @@ def find_emoticons(text: str, coefficient: float = 1.5, start_boost: float = 0.7
                 vector[0] = start_boost
             else:
                 vector[0] *= coefficient
+    if sum(vector) == 0:
+        # проверку на простые смайлики ')' и '('
+        count_close = text.count(')')
+        count_open = text.count('(')
+        if count_close > count_open:
+            vector[2] = start_boost
+        elif count_open > count_close:
+            vector[0] = start_boost
     return vector
 
 
