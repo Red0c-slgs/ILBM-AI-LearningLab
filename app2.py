@@ -107,7 +107,7 @@ async def text_mess_get():
 
     try:
         sentiment = sent_dict[await text_sentiment(data)]
-        return await render_template('upload.html', message=f"Тональность текста: {sentiment}")
+        return await render_template('upload.html', message=f"Тональность текста: {sentiment}",text = data)
     except Exception as e:
         return await render_template('upload.html', error=str(e))
 
