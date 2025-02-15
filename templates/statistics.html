@@ -45,12 +45,6 @@
                 <canvas id="sentimentChart" width="400" height="200"></canvas>
             </div>
         </div>
-        <!-- Кнопка для возврата на главную -->
-
-        <div class="text-center">
-            <a href="/" class="btn btn-primary">Вернуться на главную</a>
-        </div>
-            </div>
 
         <!-- Таблица с результатами -->
         <div class="card mb-4">
@@ -75,7 +69,12 @@
             </div>
         </div>
 
-
+        <!-- Кнопки для возврата на главную и скачивания файла -->
+        <div class="text-center">
+            <a href="/" class="btn btn-primary">Вернуться на главную</a>
+            <a href="{{ url_for('download_file', filename=filename) }}" class="btn btn-success">Скачать датасет</a>
+        </div>
+    </div>
 
     <script>
         const ctx = document.getElementById('sentimentChart').getContext('2d');
