@@ -11,8 +11,6 @@ import pymorphy3
 
 nltk.download('punkt_tab')
 
-nltk.download('punkt_tab')
-
 # Инициализация анализатора
 morph = pymorphy3.MorphAnalyzer()
 
@@ -23,6 +21,11 @@ sentiment_task = pipeline("sentiment-analysis", model=model_path, tokenizer=toke
 
 
 def upload_smiles(name: str) -> set[str]:
+    """
+    Загрузка списка эмотикоинов из файла.
+    :param name: Имя файла.
+    :return: Set из эмотикоинов.
+    """
     result = set([])
     with open(name, 'r', encoding="utf-8") as f:
         smiles = f.read().splitlines()
@@ -38,14 +41,22 @@ negative_emoticons = upload_smiles('emoji_negative.txt')
 
 
 def analysis(text: str) -> np.ndarray:
-    """Анализирует текст и возвращает все вероятности"""
+    """
+    Анализирует текст и возвращает все вероятности
+    :param text: Исходный текст.
+    :return: Вектор тональности.
+    """
     with torch.no_grad():
         proba = sentiment_task(text, return_all_scores=True)
     return np.array([vec['score'] for vec in proba[0]])
 
 
 def get_proba(data: str | list[str]) -> np.ndarray:
-    """В зависимости от входных данных возвращает результат анализа текста"""
+    """
+    В зависимости от входных данных возвращает результат анализа текста
+    :param data: Исходный текст, либо список текстов (для слишком больших текстов).
+    :return: Вектор тональности.
+    """
     if isinstance(data, list): # если текст велик
         results = [analysis(el) for el in data]
         n = len(results)
@@ -58,26 +69,54 @@ def get_proba(data: str | list[str]) -> np.ndarray:
     return proba
 
 
-def get_sentiment(text: str, return_type: str = 'score-label', passing_threshold: float = 1/3, emoji: bool = False,
-                  coefficient: float = 1.5, start_boost: float = 0.7, del_name: bool = False, name_thresh: float = 0.75)\
-        -> str | tuple[str, float] | np.ndarray:
-    """Определяет тональность текста text. return_type может быть: 'label' - наибольшая метка, 'score' - числовая оценка,
-    'score-label' - числовая оценка, переведенная в метку, 'proba' - вероятности для каждой метки. passing_threshold -
-    порог для определения меток. emoji - поиск и учет эмотиконов"""
+def get_sentiment(text: str, return_type: str = 'score-label', passing_threshold: float = 1/3, emoji: bool = True,
+                  coefficient: float = 1.5, start_boost: float = 0.7, del_name: bool = True, name_thresh: float = 0.75,
+                  del_html: bool = True, del_url: bool = True, del_path: bool = True, check_solo_emoji: bool = True) \
+        -> (str | tuple[str, float] | np.ndarray | tuple[str, np.ndarray]):
+    """
+    Определяет тональность текста.
+
+    :param text: Исходный текст.
+    :param return_type: Тип возвращаемого значения. Возможные значения:
+        - 'proba': Вектор тональности.
+        - 'label': Метка наибольшей вероятности.
+        - 'score': Числовая оценка тональности (Разность позитива и негатива).
+        - 'score-label': Числовая оценка 'score', переведенная в буквенную метку.
+        - 'score-label-proba': Числовая оценка 'score', переведенная в буквенную метку и вектор тональности.
+        По умолчанию: 'score-label'.
+    :param passing_threshold: Порог определения полярной тональности (0 отключает нейтральные метки)
+    :param emoji: Флаг поиска и учета эмотиконов.
+    :param coefficient: Коэффициент умножения при обнаружении эмотикоина.
+    :param start_boost: Стартовая прибавка при обнаружении первого эмотикоина.
+    :param del_name: Флаг удаления имен из текста.
+    :param name_thresh: Порог определения имен для удаления.
+    :param del_html: Флаг удаления HTML-разметки.
+    :param del_url: Флаг удаления URL-ссылок.
+    :param del_path: Флаг удаления путей.
+    :param check_solo_emoji: Проверка является ли текст одиночным эмотикоином.
+
+    :return: Метка или вектор тональности.
+    """
     #print(f'Начата обработка текста {text[:30]}')
     # обработка текста
-    data = preprocessing(text, del_name=del_name, name_thresh=name_thresh)
-
-    print(data)
-    proba = get_proba(data)
-    # Учет эмотиконов
-    if emoji:
-        emoji_vector = find_emoticons(data, coefficient, start_boost)
-        for el in range(3):
-            if emoji_vector[el]:
-                proba[el] += emoji_vector[el]
-        if any(emoji_vector) != 0:
-            proba /= [2, 2, 2]
+    data = preprocessing(text, del_name=del_name, name_thresh=name_thresh, del_html=del_html, del_url=del_url,
+                         del_path=del_path)
+    # Проверка соло эмотикоина
+    if check_solo_emoji and isinstance(data, str) and len(data.split()) == 1:
+        if data.split()[0] in positive_emoticons:
+            proba = [0.0, 0.0, 0.7]
+        else:
+            proba = [0.7, 0.0, 0.0]
+    else:
+        proba = get_proba(data)
+        # Учет эмотиконов
+        if emoji:
+            emoji_vector = find_emoticons(data, coefficient, start_boost)
+            for el in range(3):
+                if emoji_vector[el]:
+                    proba[el] += emoji_vector[el]
+            if any(emoji_vector) != 0:
+                proba /= [2, 2, 2]
     # print(f'DATA: {data}\n{proba.dot([-1, 0, 1])}   {proba}')
     # Выбор типа возвращаемых данных
     lbl = ['B', 'N', 'G']
@@ -95,7 +134,7 @@ def get_sentiment(text: str, return_type: str = 'score-label', passing_threshold
         if score > - passing_threshold:
             return 'N'
         return 'B'
-    if return_type == 'proba-label':
+    if return_type == 'score-label-proba':
         score = proba.dot([-1, 0, 1])
         if score > passing_threshold:
             return 'G', proba
@@ -106,7 +145,11 @@ def get_sentiment(text: str, return_type: str = 'score-label', passing_threshold
 
 
 def clean_html(text: str) -> str | None:
-    """Очищает текст text от HTML-разметки"""
+    """
+    Очищает текст text от HTML-разметки
+    :param text: Исходный текст.
+    :return: Текст без HTML-разметки.
+    """
     if text is None or pd.isna(text):  # Проверка на NaN
         return text
     soup = BeautifulSoup(text, 'html.parser')
@@ -114,7 +157,12 @@ def clean_html(text: str) -> str | None:
 
 
 def split_sentence(text: str, window_size: int = 514) -> list[str]:
-    """Разбивает большой текст на предложения"""
+    """
+    Разбивает большой текст на предложения
+    :param text: Исходный текст.
+    :param window_size: Максимальный размер текста, к которому нужно преобразовать.
+    :return: Список меньших текстов.
+    """
     sentences = []  # список предложений
     for sentence in re.split(r"(?<=[.!?…]) ", text):
         if len(sentence) > window_size: # если предложение больше окна
@@ -134,7 +182,12 @@ def split_sentence(text: str, window_size: int = 514) -> list[str]:
 
 
 def delete_name(text: str, prob_thresh: float = 0.75) -> str:
-    """Удаляет имена"""
+    """
+    Удаляет имена
+    :param text: Исходный текст.
+    :param prob_thresh: Порог определения имен для удаления.
+    :return: Текст без имен.
+    """
     for word in nltk.word_tokenize(text):
         for p in morph.parse(word):
             if 'Name' in p.tag and p.score >= prob_thresh:
@@ -144,11 +197,25 @@ def delete_name(text: str, prob_thresh: float = 0.75) -> str:
     return text
 
 
-def preprocessing(text: str, window_size: int = 514, del_name: bool = False, name_thresh: float = 0.75) -> str | list[str]:
-    """Предварительная обработка текстов"""
-    text = clean_html(text)
-    text = remove_path(text)
-    text = remove_urls(text)
+def preprocessing(text: str, window_size: int = 514, del_name: bool = False, name_thresh: float = 0.75,
+                  del_html: bool = True, del_url: bool = True, del_path: bool = True) -> str | list[str]:
+    """
+    Предварительная обработка текстов
+    :param text: Исходный текст.
+    :param window_size: Максимальный размер текста, к которому нужно преобразовать.
+    :param del_name: Флаг удаления имен.
+    :param name_thresh: Порог определения имен для удаления.
+    :param del_html: Флаг удаления HTML-разметки.
+    :param del_url: Флаг удаления URL-ссылок.
+    :param del_path: Флаг удаления путей.
+    :return: Обработанный текст, либо список текстов.
+    """
+    if del_html:
+        text = clean_html(text)
+    if del_url:
+        text = remove_urls(text)
+    if del_path:
+        text = remove_path(text)
     if del_name:
         text = delete_name(text, prob_thresh=name_thresh)
     if len(text) > window_size:
@@ -160,8 +227,7 @@ def preprocessing(text: str, window_size: int = 514, del_name: bool = False, nam
 def remove_urls(text: str):
     """
     Удаляет все URL-адреса из текста.
-
-    :param text: Исходный текст, содержащий URL-адреса.
+    :param text: Исходный текст.
     :return: Текст без URL-адресов.
     """
     # Регулярное выражение для поиска URL-адресов
@@ -174,8 +240,7 @@ def remove_urls(text: str):
 def remove_path(text):
     """
     Удаляет путь из текста.
-
-    :param text: Исходный текст, содержащий путь.
+    :param text: Исходный текст.
     :return: Текст без пути.
     """
     # Регулярное выражение для поиска пути
@@ -186,8 +251,13 @@ def remove_path(text):
 
 
 def find_emoticons(text: str, coefficient: float = 1.5, start_boost: float = 0.7) -> list[float]:
-    """Принимает текст text и ищет смайлики. coefficient - коэффициент увеличения значения тональности по направлению,
-    в котором найден эмотикон. start_boost - стартовая прибавка к значению тональности при первом обнаружении. Возвращает вектор тональности"""
+    """
+    Принимает текст и ищет смайлики.
+    :param text: Исходный текст.
+    :param coefficient: Коэффициент увеличения значения тональности по направлению, в котором найден эмотикон.
+    :param start_boost: Стартовая прибавка к значению тональности при первом обнаружении.
+    :return: Вектор тональности.
+    """
     vector = [0.0, 0.0, 0.0]
     if isinstance(text, list):
         result = [find_emoticons(element, coefficient=coefficient, start_boost=start_boost) for element in text]
@@ -200,7 +270,6 @@ def find_emoticons(text: str, coefficient: float = 1.5, start_boost: float = 0.7
 
     # проверка на смайлики
     for word in text.split():
-        print(word)
         if word in positive_emoticons:
             if not vector[2]:
                 vector[2] = start_boost
@@ -219,7 +288,6 @@ def find_emoticons(text: str, coefficient: float = 1.5, start_boost: float = 0.7
             vector[2] = start_boost
         elif count_open > count_close:
             vector[0] = start_boost
-    print(vector)
     return vector
 
 
@@ -228,9 +296,9 @@ def find_emoticons(text: str, coefficient: float = 1.5, start_boost: float = 0.7
 #
 #
 # # dataset
-# dataset = pd.read_excel('dataset_comments_35.xlsx')
+# dataset = pd.read_excel('dataset_comments_razmetka.xlsx')
 # # sentiments = [get_sentiment(text, return_type='proba-label', emoji=False, start_boost=0.7, coefficient=1.5, del_name=True) for text in dataset['MessageText']] # Результат
-# sentiments2 = [get_sentiment(text, return_type='proba-label', emoji=True, start_boost=0.7, coefficient=1.5, del_name=True) for text in dataset['MessageText']]
+# sentiments2 = [get_sentiment(text, return_type='score-label', emoji=True, start_boost=0.7, coefficient=1.5, del_name=True) for text in dataset['MessageText']]
 #
 # print(time.time()-start_time)
 # # print(sentiments)
@@ -245,13 +313,14 @@ def find_emoticons(text: str, coefficient: float = 1.5, start_boost: float = 0.7
 # # print('-'*150)
 # # print('Result', count_True/168)
 # count_True2 = 0
-# for i in range(168):
+# for i in range(508):
 #     if dataset['Class'][i] == dataset['Result_Emoji'][i][0][0].upper():
 #         count_True2 += 1
-#     else:
+#     if dataset['Class'][i] == 'B':
 #         print(dataset.iloc[i, [2, 3, 4]], '\n')
-# print('Result_Emoji', count_True2/168)
-# #
+# print('Result_Emoji', count_True2/508)
+# dataset.to_excel('ХуйняЕбаная.xlsx')
+#
 # result_data = pd.DataFrame({
 #     "Имя": [],
 #     "Счет": []
