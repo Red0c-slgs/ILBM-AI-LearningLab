@@ -35,23 +35,25 @@ def metrix(data, name):
     res[6] = recall[2]
     res[7] = recall[1]
     results.loc[len(results)] = res
-    # print(results)
+    file.write(f'{";".join(map(str, res))}\n')
+    # print(res)
 
 
 
-
+file = open('Запаска.txt', 'w')
+file.write('Name;Accuracy;Precision B;Precision N;Precision G;Recall B;Recall N;Recall G\n')
 
 
 
 # Перебор параметров
 for rt in ['score-label', 'label']: #2
-    for pas_thresh in range(0, 110, 16): #6
+    for pas_thresh in range(0, 110, 20): #5
         pas_thresh /= 100
-        for coef in range(0, 310, 48): #6
+        for coef in range(0, 310, 60): #5
             coef /= 100
-            for stb in range(0, 110, 16): #6
+            for stb in range(0, 110, 20): #5
                 stb /= 100
-                for name_thresh in range(0, 110, 16): #6
+                for name_thresh in range(0, 110, 20): #5
                     name_thresh /= 100
                     start_time = time.time()
                     sentiments = [model.get_sentiment(text, return_type=rt, passing_threshold=pas_thresh, coefficient=coef,
@@ -59,5 +61,5 @@ for rt in ['score-label', 'label']: #2
                                   for text in dataset['MessageText']]
                     metrix(sentiments, f'{rt}, {pas_thresh}, {coef}, {stb}, {name_thresh}')
                     print(f'Время: {time.time() - start_time}')
-
+file.close()
 results.to_excel('Результаты тестов.xlsx')
