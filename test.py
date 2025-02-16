@@ -35,6 +35,7 @@ def metrix(data, name):
     res[6] = recall[2]
     res[7] = recall[1]
     results.loc[len(results)] = res
+    # print(results)
 
 
 
@@ -58,3 +59,5 @@ for rt in ['score-label', 'label']: #2
                                   for text in dataset['MessageText']]
                     metrix(sentiments, f'{rt}, {pas_thresh}, {coef}, {stb}, {name_thresh}')
                     print(f'Время: {time.time() - start_time}')
+
+results.to_excel('Результаты тестов.xlsx')
