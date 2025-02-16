@@ -101,12 +101,19 @@ def get_sentiment(text: str, return_type: str = 'score-label', passing_threshold
     # обработка текста
     data = preprocessing(text, del_name=del_name, name_thresh=name_thresh, del_html=del_html, del_url=del_url,
                          del_path=del_path)
-    # Проверка соло эмотикоина
-    if check_solo_emoji and isinstance(data, str) and len(data.split()) == 1:
-        if data.split()[0] in positive_emoticons:
-            proba = [0.0, 0.0, 0.7]
-        else:
-            proba = [0.7, 0.0, 0.0]
+    # Проверка соло слова
+    if isinstance(data, str) and len(data.split()) == 1:
+        # print(data)
+        if bool(re.match(r'[a-zA-Zа-яА-Я]', data)):
+            proba = np.array([0.0, 0.0, 0.0])
+        if check_solo_emoji:
+            if data.split()[0] in positive_emoticons:
+                proba = np.array([0.0, 0.0, 0.7])
+            elif data.split()[0] in negative_emoticons:
+                proba = np.array([0.7, 0.0, 0.0])
+            elif 'proba' not in locals():
+                proba = get_proba(data)
+        # print(proba)
     else:
         proba = get_proba(data)
         # Учет эмотиконов
@@ -250,7 +257,7 @@ def remove_path(text):
     return cleaned_text.strip()  # Убираем лишние пробелы
 
 
-def find_emoticons(text: str, coefficient: float = 1.5, start_boost: float = 0.7) -> list[float]:
+def find_emoticons(text: str | list[str], coefficient: float = 1.5, start_boost: float = 0.7) -> list[float]:
     """
     Принимает текст и ищет смайлики.
     :param text: Исходный текст.
@@ -313,13 +320,13 @@ def find_emoticons(text: str, coefficient: float = 1.5, start_boost: float = 0.7
 # # print('-'*150)
 # # print('Result', count_True/168)
 # count_True2 = 0
-# for i in range(508):
+# for i in range(len(dataset['Class'])):
 #     if dataset['Class'][i] == dataset['Result_Emoji'][i][0][0].upper():
 #         count_True2 += 1
-#     if dataset['Class'][i] == 'B':
+#     else:
 #         print(dataset.iloc[i, [2, 3, 4]], '\n')
-# print('Result_Emoji', count_True2/508)
-# dataset.to_excel('ХуйняЕбаная.xlsx')
+# print('Result_Emoji', count_True2/len(dataset['Class']))
+# dataset.to_excel('ДляМетрики.xlsx')
 #
 # result_data = pd.DataFrame({
 #     "Имя": [],
