@@ -45,13 +45,13 @@ def metrix(data, name):
 
 # Перебор параметров
 for rt in ['score-label', 'label']: #2
-    for pas_thresh in range(0, 110, 10): #10
+    for pas_thresh in range(0, 110, 16): #6
         pas_thresh /= 100
-        for coef in range(0, 310, 10): #30
+        for coef in range(0, 310, 48): #6
             coef /= 100
-            for stb in range(0, 110, 10): #10
+            for stb in range(0, 110, 16): #6
                 stb /= 100
-                for name_thresh in range(0, 110, 10): #10
+                for name_thresh in range(0, 110, 16): #6
                     name_thresh /= 100
                     start_time = time.time()
                     sentiments = [model.get_sentiment(text, return_type=rt, passing_threshold=pas_thresh, coefficient=coef,
