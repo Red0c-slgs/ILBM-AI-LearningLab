@@ -19,7 +19,6 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 ALLOWED_EXTENSIONS = {'xlsx', 'csv'}
 
 
-
 def allowed_file(filename):
     """Проверка расширения файла"""
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -96,15 +95,23 @@ async def show_statistics():
 
     # Анализируем файл
     dataset = await data_sentiment(file_path)
-    stats = ms.bar_chart(dataset)
+    stats_chart = ms.bar_chart(dataset)
+    stats_len = ms.text_lengths_by_tone(dataset)
+    stats_chastotnost = ms.top_words_by_tone(dataset)
+    stats_time = ms.tone_over_time(dataset)
+    stats_user = ms.users_tone(dataset)
 
     # Передаем данные в шаблон statistics.html
     return await render_template(
         'statistics.html',
-        labels=stats["labels"],  # Метки для графика
-        counts=stats["counts"],  # Данные для графика
+        labels=stats_chart["labels"],  # Метки для графика
+        counts=stats_chart["counts"],  # Данные для графика
         dataset=dataset,  # Данные для таблицы
-        filename=filename  # Имя файла для скачивания
+        filename=filename,  # Имя файла для скачивания
+        stats_len=stats_len,  # Статистика длины текстов
+        stats_chastotnost=stats_chastotnost,  # Топ слов по тональности
+        stats_time=stats_time,  # Тональность по времени
+        stats_user=stats_user  # Тональность пользователей
     )
 
 

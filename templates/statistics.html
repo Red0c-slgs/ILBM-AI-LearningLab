@@ -28,6 +28,29 @@
             overflow-wrap: break-word; /* Перенос текста */
             max-width: 300px; /* Максимальная ширина ячейки */
         }
+
+        /* Стили для скрываемых блоков */
+        .toggle-block {
+            margin-bottom: 20px;
+        }
+        .toggle-header {
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background-color: #f1f1f1;
+            border: 1px solid #ddd;
+        }
+        .toggle-header h3 {
+            margin: 0;
+        }
+        .toggle-content {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-top: none;
+            display: none; /* Скрыто по умолчанию */
+        }
     </style>
 </head>
 <body>
@@ -38,18 +61,24 @@
     <div class="container mt-4">
         <h2 class="mb-4">Статистика анализа</h2>
 
-        <!-- График -->
-        <div class="card mb-4">
-            <div class="card-header">Распределение тональности</div>
-            <div class="card-body">
+        <!-- График распределения тональности -->
+        <div class="toggle-block">
+            <div class="toggle-header" onclick="toggleBlock('sentimentChartBlock')">
+                <h3>Распределение тональности</h3>
+                <span>▼</span>
+            </div>
+            <div class="toggle-content" id="sentimentChartBlock">
                 <canvas id="sentimentChart" width="400" height="200"></canvas>
             </div>
         </div>
 
         <!-- Таблица с результатами -->
-        <div class="card mb-4">
-            <div class="card-header">Результаты анализа</div>
-            <div class="card-body table-container">
+        <div class="toggle-block">
+            <div class="toggle-header" onclick="toggleBlock('resultsTableBlock')">
+                <h3>Результаты анализа</h3>
+                <span>▼</span>
+            </div>
+            <div class="toggle-content" id="resultsTableBlock">
                 <table class="table table-bordered">
                     <thead>
                         <tr>
@@ -69,6 +98,116 @@
             </div>
         </div>
 
+        <!-- Статистика длины текстов по тональности -->
+        <div class="toggle-block">
+            <div class="toggle-header" onclick="toggleBlock('textLengthsBlock')">
+                <h3>Длина текстов по тональности</h3>
+                <span>▼</span>
+            </div>
+            <div class="toggle-content" id="textLengthsBlock">
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Тональность</th>
+                            <th>Средняя длина</th>
+                            <th>Медиана</th>
+                            <th>Минимум</th>
+                            <th>Максимум</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for label, stats in stats_len.items() %}
+                        <tr>
+                            <td>{{ label }}</td>
+                            <td>{{ stats['mean'] }}</td>
+                            <td>{{ stats['median'] }}</td>
+                            <td>{{ stats['min'] }}</td>
+                            <td>{{ stats['max'] }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Топ слов по тональности -->
+        <div class="toggle-block">
+            <div class="toggle-header" onclick="toggleBlock('topWordsBlock')">
+                <h3>Топ слов по тональности</h3>
+                <span>▼</span>
+            </div>
+            <div class="toggle-content" id="topWordsBlock">
+                {% for label, words in stats_chastotnost.items() %}
+                <h4>{{ label }}</h4>
+                <ul>
+                    {% for word, count in words.items() %}
+                    <li>{{ word }}: {{ count }}</li>
+                    {% endfor %}
+                </ul>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Тональность по времени -->
+        <div class="toggle-block">
+            <div class="toggle-header" onclick="toggleBlock('toneOverTimeBlock')">
+                <h3>Тональность по времени</h3>
+                <span>▼</span>
+            </div>
+            <div class="toggle-content" id="toneOverTimeBlock">
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Месяц</th>
+                            <th>B</th>
+                            <th>N</th>
+                            <th>G</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for month, sentiments in stats_time.items() %}
+                        <tr>
+                            <td>{{ month }}</td>
+                            <td>{{ sentiments.get('B', 0) }}</td>
+                            <td>{{ sentiments.get('N', 0) }}</td>
+                            <td>{{ sentiments.get('G', 0) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Тональность пользователей -->
+        <div class="toggle-block">
+            <div class="toggle-header" onclick="toggleBlock('usersToneBlock')">
+                <h3>Тональность пользователей</h3>
+                <span>▼</span>
+            </div>
+            <div class="toggle-content" id="usersToneBlock">
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Пользователь</th>
+                            <th>B</th>
+                            <th>N</th>
+                            <th>G</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user, sentiments in stats_user.items() %}
+                        <tr>
+                            <td>{{ user }}</td>
+                            <td>{{ sentiments.get('B', 0) }}</td>
+                            <td>{{ sentiments.get('N', 0) }}</td>
+                            <td>{{ sentiments.get('G', 0) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
         <!-- Кнопки для возврата на главную и скачивания файла -->
         <div class="text-center">
             <a href="/" class="btn btn-primary">Вернуться на главную</a>
@@ -77,6 +216,17 @@
     </div>
 
     <script>
+        // Функция для скрытия/отображения блоков
+        function toggleBlock(blockId) {
+            const block = document.getElementById(blockId);
+            if (block.style.display === "none") {
+                block.style.display = "block";
+            } else {
+                block.style.display = "none";
+            }
+        }
+
+        // Инициализация графика
         const ctx = document.getElementById('sentimentChart').getContext('2d');
         const sentimentChart = new Chart(ctx, {
             type: 'bar',
