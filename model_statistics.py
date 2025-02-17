@@ -18,11 +18,20 @@ nltk.download('stopwords')
 def bar_chart(dataset: pd.DataFrame):
     """Данные для столбчатой диаграммы"""
     labels = ['B', 'N', 'G']
-    sentiment_counts = dataset['Sentiment'].value_counts() # Подсчет количества каждого элемента
-    sentiment_counts = sentiment_counts.reindex(labels, fill_value=0) # Если нужно убедиться, что все метки (B, N, G) присутствуют, даже если их количество равно 0
-    counts_list = sentiment_counts[labels].tolist() # Преобразуем в список
+    sentiment_counts = dataset['Sentiment'].value_counts()  # Подсчет количества каждого элемента
+    sentiment_counts = sentiment_counts.reindex(labels, fill_value=0)  # Убедимся, что все метки присутствуют
+    counts_list = sentiment_counts[labels].tolist()  # Преобразуем в список
+
+    # Рассчитываем проценты
+    total = sum(counts_list)
+    percentages = [round((count / total) * 100, 2) if total > 0 else 0 for count in counts_list]
+
     # Возврат данных для столбчатой диаграммы
-    return {"labels": labels, "counts": counts_list}
+    return {
+        "labels": labels,  # Метки для графика
+        "counts": counts_list,  # Количество
+        "percentages": percentages  # Проценты
+    }
 
 
 def text_lengths_by_tone(dataset: pd.DataFrame):

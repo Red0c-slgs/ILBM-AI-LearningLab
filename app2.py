@@ -107,7 +107,8 @@ async def show_statistics():
     return await render_template(
         'statistics.html',
         labels=stats_chart["labels"],  # Метки для графика
-        counts=stats_chart["counts"],  # Данные для графика
+        counts=stats_chart["counts"],  # Количество
+        percentages=stats_chart["percentages"],  # Проценты
         dataset=dataset,  # Данные для таблицы
         filename=filename,  # Имя файла для скачивания
         stats_len=stats_len,  # Статистика длины текстов

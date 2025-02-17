@@ -6,6 +6,7 @@
     <title>Статистика анализа</title>
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
     <style>
         body { background-color: #f8f9fa; }
         .navbar { background-color: #28a745; }
@@ -17,16 +18,16 @@
 
         /* Стили для таблицы */
         .table-container {
-            overflow-x: auto; /* Горизонтальная прокрутка, если таблица слишком широкая */
+            overflow-x: auto;
         }
         .table {
             width: 100%;
-            table-layout: fixed; /* Фиксированная ширина столбцов */
+            table-layout: fixed;
         }
         .table th, .table td {
-            word-wrap: break-word; /* Перенос текста */
-            overflow-wrap: break-word; /* Перенос текста */
-            max-width: 300px; /* Максимальная ширина ячейки */
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            max-width: 300px;
         }
 
         /* Стили для скрываемых блоков */
@@ -49,7 +50,7 @@
             padding: 10px;
             border: 1px solid #ddd;
             border-top: none;
-            display: none; /* Скрыто по умолчанию */
+            display: none;
         }
     </style>
 </head>
@@ -69,32 +70,6 @@
             </div>
             <div class="toggle-content" id="sentimentChartBlock">
                 <canvas id="sentimentChart" width="400" height="200"></canvas>
-            </div>
-        </div>
-
-        <!-- Таблица с результатами -->
-        <div class="toggle-block">
-            <div class="toggle-header" onclick="toggleBlock('resultsTableBlock')">
-                <h3>Результаты анализа</h3>
-                <span>▼</span>
-            </div>
-            <div class="toggle-content" id="resultsTableBlock">
-                <table class="table table-bordered">
-                    <thead>
-                        <tr>
-                            <th>Текст</th>
-                            <th>Тональность</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for index, row in dataset.iterrows() %}
-                        <tr>
-                            <td>{{ row['MessageText'] }}</td>
-                            <td>{{ row['Sentiment'] }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
             </div>
         </div>
 
@@ -129,7 +104,6 @@
                 </table>
             </div>
         </div>
-
 
         <!-- Тональность по времени -->
         <div class="toggle-block">
@@ -216,7 +190,7 @@
             data: {
                 labels: {{ labels | tojson }},
                 datasets: [{
-                    label: 'Проценты',
+                    label: 'Количество',
                     data: {{ counts | tojson }},
                     backgroundColor: [
                         'rgba(255, 99, 132, 0.2)',
@@ -233,9 +207,30 @@
             },
             options: {
                 scales: {
-                    y: { beginAtZero: true }
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Количество'
+                        }
+                    }
+                },
+                plugins: {
+                    datalabels: {
+                        anchor: 'end',
+                        align: 'top',
+                        formatter: (value, context) => {
+                            const percentage = {{ percentages | tojson }}[context.dataIndex];
+                            return `${value}\n(${percentage}%)`;
+                        },
+                        color: '#000',
+                        font: {
+                            weight: 'bold'
+                        }
+                    }
                 }
-            }
+            },
+            plugins: [ChartDataLabels] // Подключаем плагин
         });
     </script>
 
