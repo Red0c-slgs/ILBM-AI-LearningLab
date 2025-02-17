@@ -36,7 +36,8 @@ async def data_sentiment(data_name: str):
     sentiments = []
     for text in dataset['MessageText']:
         sentiment = await asyncio.to_thread(
-            model.get_sentiment, text, return_type='score-label', emoji=True, del_name=True
+            model.get_sentiment, text, return_type='score-label', passing_threshold=0.4, coefficient=1.2,
+            start_boost=1, name_thresh=0.2
         )
 
         sentiments.append(sentiment)
@@ -48,7 +49,8 @@ async def data_sentiment(data_name: str):
 async def text_sentiment(text: str):
     """Принимает текст, обрабатывает и возвращает метку-результат"""
     return await asyncio.to_thread(
-        model.get_sentiment, text, return_type='score-label', emoji=True, del_name=True
+        model.get_sentiment, text, return_type='score-label', passing_threshold=0.4, coefficient=1.2,
+        start_boost=1, name_thresh=0.2
     )
 
 

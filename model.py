@@ -178,7 +178,7 @@ def split_sentence(text: str, window_size: int = 514) -> list[str]:
             count = 0
             while count < len(words):
                 short_sentence = ''
-                while len(short_sentence + ' ' + words[count]) < window_size:
+                while count < len(words) and len(short_sentence + ' ' + words[count]) < window_size:
                     short_sentence += ' ' + words[count] if short_sentence else words[count]
                     count += 1
                 short_sentences.append(short_sentence)
@@ -303,9 +303,9 @@ def find_emoticons(text: str | list[str], coefficient: float = 1.5, start_boost:
 #
 #
 # # dataset
-# dataset = pd.read_excel('dataset_comments_razmetka.xlsx')
+# dataset = pd.read_excel('dataset_comments_100_test.xlsx')
 # # sentiments = [get_sentiment(text, return_type='proba-label', emoji=False, start_boost=0.7, coefficient=1.5, del_name=True) for text in dataset['MessageText']] # Результат
-# sentiments2 = [get_sentiment(text, return_type='score-label', emoji=True, start_boost=0.7, coefficient=1.5, del_name=True) for text in dataset['MessageText']]
+# sentiments2 = [get_sentiment(text, return_type='score-label', passing_threshold=0.4, coefficient=1.2, start_boost=1, name_thresh=0.2) for text in dataset['MessageText']]
 #
 # print(time.time()-start_time)
 # # print(sentiments)
