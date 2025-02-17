@@ -3,7 +3,7 @@ import model
 import time
 from sklearn.metrics import confusion_matrix, precision_score, accuracy_score, recall_score
 
-dataset = pd.read_excel('dataset_comments_razmetka.xlsx')
+dataset = pd.read_excel('dataset_comments_100_test.xlsx')
 n = len(dataset['MessageText'])
 
 classes = ['B', 'N', 'G']
@@ -40,7 +40,7 @@ def metrix(data, name):
 
 
 
-file = open('Запаска.txt', 'w')
+file = open('Запаска2.txt', 'w')
 file.write('Name;Accuracy;Precision B;Precision N;Precision G;Recall B;Recall N;Recall G\n')
 
 
@@ -62,4 +62,4 @@ for rt in ['score-label', 'label']: #2
                     metrix(sentiments, f'{rt}, {pas_thresh}, {coef}, {stb}, {name_thresh}')
                     print(f'Время: {time.time() - start_time}')
 file.close()
-results.to_excel('Результаты тестов.xlsx')
+results.to_excel('Результаты тестов2.xlsx')
