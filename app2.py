@@ -13,7 +13,9 @@ app = Quart(__name__)
 
 # Папка для загрузки файлов
 UPLOAD_FOLDER = 'upload'
+PROCESSED_FOLDER = 'processed'  # Новая папка для обработанных файлов
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['PROCESSED_FOLDER'] = PROCESSED_FOLDER
 
 # Разрешенные расширения файлов
 ALLOWED_EXTENSIONS = {'xlsx', 'csv'}
@@ -97,6 +99,8 @@ async def show_statistics():
 
     # Анализируем файл
     dataset = await data_sentiment(file_path)
+    processed_path = os.path.join(app.config['PROCESSED_FOLDER'], filename)
+    dataset.to_excel(processed_path, index=False)
     stats_chart = ms.bar_chart(dataset)
     stats_len = ms.text_lengths_by_tone(dataset)
     stats_chastotnost = ms.top_words_by_tone(dataset)
@@ -120,28 +124,21 @@ async def show_statistics():
 
 @app.route('/download')
 async def download_file():
-    # Получаем имя файла из query-параметров
     filename = request.args.get('filename')
-    if not filename:
-        return await render_template('upload.html', error="Файл не указан")
+    processed_path = os.path.join(app.config['PROCESSED_FOLDER'], filename)
 
-    # Полный путь к файлу
-    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-
-    # Проверяем, существует ли файл
-    if not os.path.exists(file_path):
+    if not os.path.exists(processed_path):
         return await render_template('upload.html', error="Файл не найден")
 
-    # Анализируем файл
-    dataset = await data_sentiment(file_path)
+    # Читаем сохраненные данные
+    dataset = pd.read_excel(processed_path)
 
-    # Сохраняем датасет в буфер
+    # Генерируем файл для скачивания
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
         dataset.to_excel(writer, index=False)
     output.seek(0)
 
-    # Возвращаем файл для скачивания
     return await send_file(
         output,
         mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -157,7 +154,6 @@ async def text_mess_get():
     sent_dict = {"B": "Негативный", "N": "Нейтральный", "G": "Позитивный"}
     if not data:
         return await render_template('upload.html', error="Текст не предоставлен")
-
     try:
         sentiment = sent_dict[await text_sentiment(data)]
         return await render_template('upload.html', message=f"Тональность текста: {sentiment}",text = data)

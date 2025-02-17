@@ -73,6 +73,32 @@
             </div>
         </div>
 
+        <!-- Таблица с результатами -->
+        <div class="toggle-block">
+            <div class="toggle-header" onclick="toggleBlock('resultsTableBlock')">
+                <h3>Результаты анализа</h3>
+                <span>▼</span>
+            </div>
+            <div class="toggle-content" id="resultsTableBlock">
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Текст</th>
+                            <th>Тональность</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for index, row in dataset.iterrows() %}
+                        <tr>
+                            <td>{{ row['MessageText'] }}</td>
+                            <td>{{ row['Sentiment'] }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
         <!-- Статистика длины текстов по тональности -->
         <div class="toggle-block">
             <div class="toggle-header" onclick="toggleBlock('textLengthsBlock')">
