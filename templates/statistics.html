@@ -130,23 +130,6 @@
             </div>
         </div>
 
-        <!-- Топ слов по тональности -->
-        <div class="toggle-block">
-            <div class="toggle-header" onclick="toggleBlock('topWordsBlock')">
-                <h3>Топ слов по тональности</h3>
-                <span>▼</span>
-            </div>
-            <div class="toggle-content" id="topWordsBlock">
-                {% for label, words in stats_chastotnost.items() %}
-                <h4>{{ label }}</h4>
-                <ul>
-                    {% for word, count in words.items() %}
-                    <li>{{ word }}: {{ count }}</li>
-                    {% endfor %}
-                </ul>
-                {% endfor %}
-            </div>
-        </div>
 
         <!-- Тональность по времени -->
         <div class="toggle-block">
@@ -233,7 +216,7 @@
             data: {
                 labels: {{ labels | tojson }},
                 datasets: [{
-                    label: 'Количество',
+                    label: 'Проценты',
                     data: {{ counts | tojson }},
                     backgroundColor: [
                         'rgba(255, 99, 132, 0.2)',
