@@ -11,14 +11,13 @@ import time
 
 app = Quart(__name__)
 
-# Папка для загрузки файлов
-UPLOAD_FOLDER = 'upload'
-PROCESSED_FOLDER = 'processed'  # Новая папка для обработанных файлов
+UPLOAD_FOLDER = 'upload' #исходники xlsx
+PROCESSED_FOLDER = 'processed'  # Пост разметка
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['PROCESSED_FOLDER'] = PROCESSED_FOLDER
 
 # Разрешенные расширения файлов
-ALLOWED_EXTENSIONS = {'xlsx', 'csv'}
+ALLOWED_EXTENSIONS = {'xlsx'}
 
 
 def allowed_file(filename):
@@ -77,7 +76,7 @@ async def upload_file():
         file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         await file.save(file_path)
 
-        # Перенаправляем на страницу статистики с именем файла
+        # Редирект на статистику с именем файла
         return redirect(url_for('show_statistics', filename=filename))
     else:
         return await render_template('upload.html', error="Недопустимый формат файла")
@@ -85,29 +84,29 @@ async def upload_file():
 
 @app.route('/statistics')
 async def show_statistics():
-    # Получаем имя файла из query-параметров
-    filename = request.args.get('filename')
+    "Функция дергает модельку и выводит статистику в шаблон"
+    filename = request.args.get('filename')#вытягиваем имя из запроса
     if not filename:
         return await render_template('upload.html', error="Файл не указан")
 
-    # Полный путь к файлу
+    # Абсолютный путь к файлу
     file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
 
-    # Проверяем, существует ли файл
+    # Проверка на наличие
     if not os.path.exists(file_path):
         return await render_template('upload.html', error="Файл не найден")
 
     # Анализируем файл
     dataset = await data_sentiment(file_path)
-    processed_path = os.path.join(app.config['PROCESSED_FOLDER'], filename)
-    dataset.to_excel(processed_path, index=False)
-    stats_chart = ms.bar_chart(dataset)
+    processed_path = os.path.join(app.config['PROCESSED_FOLDER'], filename) #закидываем размеченный файл в папку
+    dataset.to_excel(processed_path, index=False) # непосредственно закидывание в XXL формате
+    stats_chart = ms.bar_chart(dataset) #куча всякой статистики
     stats_len = ms.text_lengths_by_tone(dataset)
     stats_chastotnost = ms.top_words_by_tone(dataset)
     stats_time = ms.tone_over_time(dataset)
-    stats_user = ms.users_tone(dataset)
+    stats_user = ms.users_tone(dataset)#конец кучу статистики
 
-    # Передаем данные в шаблон statistics.html
+    # Кидаем обратно в статистику
     return await render_template(
         'statistics.html',
         labels=stats_chart["labels"],  # Метки для графика
@@ -124,16 +123,17 @@ async def show_statistics():
 
 @app.route('/download')
 async def download_file():
+    "функция принимает запрос(на кнопку) и отправляет размеченный файл"
     filename = request.args.get('filename')
     processed_path = os.path.join(app.config['PROCESSED_FOLDER'], filename)
 
     if not os.path.exists(processed_path):
         return await render_template('upload.html', error="Файл не найден")
 
-    # Читаем сохраненные данные
+    # Чтение, проверить protected name
     dataset = pd.read_excel(processed_path)
 
-    # Генерируем файл для скачивания
+    # Хз че тут происхит, вроде переработка обратно в XL
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
         dataset.to_excel(writer, index=False)
