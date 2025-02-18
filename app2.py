@@ -84,7 +84,7 @@ async def upload_file():
 
 @app.route('/statistics')
 async def show_statistics():
-    "Функция дергает модельку и выводит статистику в шаблон"
+    """Функция дергает модельку и выводит статистику в шаблон"""
     filename = request.args.get('filename')#вытягиваем имя из запроса
     if not filename:
         return await render_template('upload.html', error="Файл не указан")
@@ -123,7 +123,7 @@ async def show_statistics():
 
 @app.route('/download')
 async def download_file():
-    "функция принимает запрос(на кнопку) и отправляет размеченный файл"
+    """Функция принимает запрос(на кнопку) и отправляет размеченный файл"""
     filename = request.args.get('filename')
     processed_path = os.path.join(app.config['PROCESSED_FOLDER'], filename)
 
