@@ -6,14 +6,6 @@ import nltk
 from nltk.corpus import stopwords
 nltk.download('stopwords')
 
-# data = {
-#     'UserSenderId': ['Twitter', 'Facebook', 'Twitter', 'Instagram', 'Facebook'],
-#      'SubmitDate': ['2023-12-01 14:30:00', '2023-10-02 09:15:00', '2023-02-02 18:45:00', '2023-10-03 12:00:00', '2023-10-03 23:59:00'],
-#     'MessageText': ["Отличный день!", "Все плохо...", "Нормально", "Я счастлив!", "Мне грустно"],
-#      'Sentiment': ['G', 'B', 'N', 'G', 'B']
-#  }
-# df = pd.DataFrame(data)
-
 
 def bar_chart(dataset: pd.DataFrame):
     """Данные для столбчатой диаграммы"""
@@ -40,8 +32,8 @@ def text_lengths_by_tone(dataset: pd.DataFrame):
     length_stats = {}
     for label in ['B', 'N', 'G']:
         length_stats[label] = {
-            'mean': dataset[dataset['Sentiment'] == label]['TextLength'].mean(),
-            'median': dataset[dataset['Sentiment'] == label]['TextLength'].median(),
+            'mean': round(dataset[dataset['Sentiment'] == label]['TextLength'].mean(), 2),
+            'median': round(dataset[dataset['Sentiment'] == label]['TextLength'].median(), 2),
             'min': dataset[dataset['Sentiment'] == label]['TextLength'].min(),
             'max': dataset[dataset['Sentiment'] == label]['TextLength'].max()
     }
@@ -84,9 +76,3 @@ def users_tone(dataset: pd.DataFrame):
     # Преобразуем в словарь
     source_sentiment_dict = source_sentiment.to_dict(orient='index')
     return source_sentiment_dict
-
-# print(bar_chart(df))
-# print(text_lengths_by_tone(df))
-# print(top_words_by_tone(df))
-# print(tone_over_time(df))
-# print(users_tone(df))
