@@ -1,17 +1,13 @@
 from quart import Quart, render_template, request, redirect, url_for, send_file
-import os
 from werkzeug.utils import secure_filename
 import pandas as pd
-import asyncio
-import model
 import model_statistics as ms
-import io
-import time
+import async_func as fma
 from config import UPLOAD_FOLDER, PROCESSED_FOLDER, ALLOWED_EXTENSIONS
-from functools import lru_cache
+import os
+import io
 
 
-# Инициализация приложения Quart
 app = Quart(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['PROCESSED_FOLDER'] = PROCESSED_FOLDER
@@ -24,64 +20,6 @@ def allowed_file(filename: str)->bool:
     """
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-@lru_cache(maxsize=1000)  # Кэширует до 1000 результатов
-def cached_get_sentiment(text):
-    """
-    Кэшированная версия функции model.get_sentiment.
-    :param text: Текст для анализа.
-    :return: Результат анализа тональности.
-    """
-    return model.get_sentiment(
-        text, return_type='score-label', passing_threshold=0.4, coefficient=1.2,
-        start_boost=1, name_thresh=0.2
-    )
-
-async def data_sentiment(data_name: str):
-    """
-    Анализирует тональность текстов в файле.
-    :param data_name: Имя файла с расширением.
-    :return: Датасет с добавленной колонкой 'Sentiment'.
-    """
-    st = time.time()
-    dataset = pd.read_excel(data_name)
-
-    if 'MessageText' not in dataset.columns:
-        raise ValueError("Файл должен содержать колонку 'MessageText'")
-
-    # Ограничение на количество одновременно выполняемых задач
-    semaphore = asyncio.Semaphore(12)  # Максимум 12 задач одновременно
-
-    async def process_text(text):
-        """
-        Анализирует текст с использованием кэшированной функции.
-        :param text: Текст для анализа.
-        :return: Результат анализа тональности.
-        """
-        async with semaphore:
-            return await asyncio.to_thread(cached_get_sentiment, text)
-
-    # Создаем список задач
-    tasks = [process_text(text) for text in dataset['MessageText']]
-
-    # Параллельное выполнение задач
-    sentiments = await asyncio.gather(*tasks)
-
-    dataset['Sentiment'] = sentiments
-    print(f"Время обработки файла: {time.time() - st}")
-    return dataset
-
-
-
-async def text_sentiment(text: str):
-    """
-    Анализирует тональность одного текста.
-    :param text: Текст для анализа.
-    :return: Результат анализа тональности.
-    """
-    return await asyncio.to_thread(
-        model.get_sentiment, text, return_type='score-label', passing_threshold=0.4, coefficient=1.2,
-        start_boost=1, name_thresh=0.2
-    )
 
 
 @app.route('/')
@@ -138,7 +76,7 @@ async def show_statistics():
         return await render_template('upload.html', error="Файл не найден")
 
     # Анализ тональности текстов в файле
-    dataset = await data_sentiment(file_path)
+    dataset = await fma.data_sentiment(file_path)
 
     # Сохранение обработанного файла
     processed_path = os.path.join(app.config['PROCESSED_FOLDER'], filename)
@@ -210,7 +148,7 @@ async def text_mess_get():
 
     try:
         # Анализ тональности текста
-        sentiment = sent_dict[await text_sentiment(data)]
+        sentiment = sent_dict[await fma.text_sentiment(data)]
         return await render_template('upload.html', message=f"Тональность текста: {sentiment}", text=data)
     except Exception as e:
         # Обработка ошибок

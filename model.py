@@ -1,12 +1,12 @@
 """Оптимальные настройки модели: return_type='score-label', passing_threshold: float=1/3, emoji=True, start_boost=0.7, coefficient=1.5, del_name=True, name_thresh: float=0.75"""
 import torch
-import time
 import re
 from transformers import AutoTokenizer, pipeline
 import pandas as pd
 import numpy as np
 from bs4 import BeautifulSoup
 import nltk
+import os
 import pymorphy3
 
 nltk.download('punkt_tab')
@@ -20,14 +20,19 @@ tokenizer = AutoTokenizer.from_pretrained(model_path, use_fast=False)
 sentiment_task = pipeline("sentiment-analysis", model=model_path, tokenizer=tokenizer)
 
 
+
 def upload_smiles(name: str) -> set[str]:
     """
     Загрузка списка эмотикоинов из файла.
     :param name: Имя файла.
     :return: Set из эмотикоинов.
     """
+    # Получаем путь к директории, где находится model.py
+    base_dir = os.path.dirname(os.path.abspath("emoji_negative.txt"))
+    # Формируем полный путь к файлу
+    file_path = os.path.join(base_dir, name)
     result = set([])
-    with open(name, 'r', encoding="utf-8") as f:
+    with open(file_path, 'r', encoding="utf-8") as f:
         smiles = f.read().splitlines()
         for smile in smiles:
             if smile:
