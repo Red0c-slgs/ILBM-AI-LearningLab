@@ -3,9 +3,10 @@ FROM python:3.12.3-slim
 
 WORKDIR /app
 
+
 # Копируем файлы и директории
 COPY templates ./templates
-COPY requirements.txt .
+COPY requirementsdocker.txt .
 COPY async_func.py .
 COPY app.py .
 COPY config.py .
@@ -13,6 +14,7 @@ COPY emoji_negative.txt .
 COPY emoji_positive.txt .
 COPY model.py .
 COPY model_statistics.py .
+
 
 # Устанавливаем системные зависимости
 RUN apt-get update && apt-get install -y \
@@ -23,7 +25,9 @@ RUN apt-get update && apt-get install -y \
 
 # Обновляем pip и устанавливаем зависимости Python
 RUN pip install --upgrade pip
-RUN pip install -r requirements.txt
+RUN pip install -r requirementsdocker.txt
+RUN mkdir "upload"
+RUN mkdir "processed"
 
 # Запускаем приложение с помощью Hypercorn
 EXPOSE 80
